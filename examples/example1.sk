@@ -1,0 +1,18 @@
+fn fib(n) {
+    let a = 0;
+    let b = 1;
+    let i = 0;
+    while i < n {
+        let tmp = a;
+        a = b;
+        b = tmp + a;
+        i = i + 1;
+    }
+
+    a
+}
+
+fn main() {
+    let n = 5;
+    println("fib({})={}", n, fib(n));
+}

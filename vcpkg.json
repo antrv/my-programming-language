@@ -1,0 +1,10 @@
+{
+  "version": "1.0.0",
+  "name": "sample",
+  "dependencies": [
+    "boost-parser",
+    "gtest"
+  ],
+  "builtin-baseline": "84bab45d415d22042bd0b9081aea57f362da3f35",
+  "$comment": "version 2025.12.12"
+}
