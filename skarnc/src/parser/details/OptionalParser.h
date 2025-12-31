@@ -5,7 +5,7 @@
 
 namespace skarn::parser::details {
 
-template <class Elem, IsParser<Elem> Parser>
+template <IsParser Parser>
 class OptionalParser final {
     Parser parser_;
 
@@ -22,7 +22,7 @@ public:
         return parser_;
     }
 
-    bool parse(ParserContext<Elem>& ctx, ValueType& value) const {
+    bool parse(ParserContext<InputType>& ctx, ValueType& value) const {
         value.emplace();
         if (!parser_.parse(ctx, *value)) {
             value.reset();

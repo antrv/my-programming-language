@@ -9,29 +9,21 @@ TEST(OptionalParserTests, OptionalParser)
 {
     constexpr auto parser = OptionalParser {CharParser {'a'}};
 
-    const auto result1 = parser.parse("a");
-    ASSERT_TRUE(result1);
-    EXPECT_EQ(result1.value(), 'a');
+    ParserContext<char> ctx1 {"a"};
+    std::optional<char> value1;
+    ASSERT_TRUE(parser.parse(ctx1, value1));
+    EXPECT_EQ(value1, 'a');
+    EXPECT_EQ(ctx1.messages().size(), 0);
 
-    const auto result2 = parser.parse("");
-    ASSERT_FALSE(result2);
-    const auto& msgs2 = result2.error();
-    ASSERT_EQ(msgs2.size(), 1);
-    EXPECT_EQ(msgs2[0].level, ParserMsgLevel::Error);
-    EXPECT_EQ(msgs2[0].code, ParserMsgCode::C0001);
-    EXPECT_EQ(msgs2[0].message, "Unexpected end of input, expected 'a'");
-    EXPECT_EQ(msgs2[0].position, 0);
-    EXPECT_EQ(msgs2[0].line, 1U);
-    EXPECT_EQ(msgs2[0].column, 1U);
+    ParserContext<char> ctx2 {""};
+    std::optional<char> value2;
+    ASSERT_TRUE(parser.parse(ctx2, value2));
+    EXPECT_EQ(value2, std::nullopt);
+    EXPECT_EQ(ctx2.messages().size(), 0);
 
-    const auto result3 = parser.parse("b");
-    ASSERT_FALSE(result3);
-    const auto& msgs3 = result3.error();
-    ASSERT_EQ(msgs3.size(), 1);
-    EXPECT_EQ(msgs3[0].level, ParserMsgLevel::Error);
-    EXPECT_EQ(msgs3[0].code, ParserMsgCode::C0002);
-    EXPECT_EQ(msgs3[0].message, "Unexpected input 'b', expected 'a'");
-    EXPECT_EQ(msgs3[0].position, 0);
-    EXPECT_EQ(msgs3[0].line, 1U);
-    EXPECT_EQ(msgs3[0].column, 1U);
+    ParserContext<char> ctx3 {"b"};
+    std::optional<char> value3;
+    ASSERT_TRUE(parser.parse(ctx3, value3));
+    EXPECT_EQ(value3, std::nullopt);
+    EXPECT_EQ(ctx3.messages().size(), 0);
 }

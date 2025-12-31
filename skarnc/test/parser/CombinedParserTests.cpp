@@ -9,7 +9,7 @@ using namespace skarn::parser::details;
 
 TEST(CombinedParserTests, CombinedParser)
 {
-    constexpr auto parser = makeCombinedParser<char>(
+    constexpr auto parser = makeCombinedParser(
         LiteralParser {"template"}, CharParser {' '}, LiteralParser {"class"});
 
     ParserContext<char> ctx1 {"template class 1234"};

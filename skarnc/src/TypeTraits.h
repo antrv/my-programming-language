@@ -11,8 +11,11 @@ inline constexpr bool alwaysFalse = false;
 template <class, template <class...> class>
 inline constexpr bool isSpecializationOf = false;
 
-template <template <class...> class Template, class... Args>
-inline constexpr bool isSpecializationOf<Template<Args...>, Template> = true;
+template <template <class...> class Template, class... Ts>
+inline constexpr bool isSpecializationOf<Template<Ts...>, Template> = true;
+
+template <class T, class...Ts>
+inline constexpr bool areAllSameTypesAs = (std::is_same_v<T, Ts> && ...);
 } // namespace details
 
 template <class T>
@@ -21,34 +24,10 @@ concept AlwaysFalse = details::alwaysFalse<T>;
 template <class T, template <class...> class Template>
 concept IsSpecializationOf = details::isSpecializationOf<T, Template>;
 
+template <class...Ts>
+concept AllSameTypes = details::areAllSameTypesAs<Ts...>;
+
 template <class T, class...Ts>
-inline constexpr bool areAllSameTypesAs = (std::is_same_v<T, Ts> && ...);
-
-template <class...Ts>
-struct TypePack;
-
-template <size_t Index, class Pack>
-struct TypePackElement;
-
-template <size_t Index>
-struct TypePackElement<Index, TypePack<>> {
-    static_assert(alwaysFalse<std::integral_constant<size_t, Index>>, "Index out of range");
-};
-
-template <size_t Index, class T, class...Ts>
-struct TypePackElement<Index, TypePack<T, Ts...>> :
-    std::type_identity<std::conditional_t<Index == 0, T, TypePackElement<Index - 1, TypePack<Ts...>>>> {
-};
-
-template <class...Ts>
-struct TypePack : std::type_identity<TypePack<Ts...>> {
-    static constexpr size_t size = sizeof...(Ts);
-
-    template <size_t Index>
-    using Element = TypePackElement<Index, TypePack>::type;
-};
-
-template <class Pack>
-using TypePackHead = TypePackElement<0, Pack>;
+concept AllSameTypeAs = details::areAllSameTypesAs<T, Ts...>;
 
 } // namespace skarn

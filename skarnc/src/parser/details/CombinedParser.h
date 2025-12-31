@@ -6,6 +6,14 @@
 
 namespace skarn::parser::details {
 
+// TODO: move to typepack
+template <class...Ts>
+struct FirstItem;
+
+template <class T, class...Ts>
+struct FirstItem<T, Ts...> : std::type_identity<T> {
+};
+
 template <IsParser...Parsers>
 requires (sizeof...(Parsers) >= 2 && CompatibleParsers<Parsers...>)
 class CombinedParser final {
@@ -14,7 +22,7 @@ class CombinedParser final {
 public:
     using ParserType = CombinedParser;
     using ValueType = std::tuple<typename Parsers::ValueType...>;
-    using InputType = typename Parsers::InputType;
+    using InputType = FirstItem<typename Parsers::InputType...>::type;
 
     explicit constexpr CombinedParser(Parsers... parsers) noexcept
         : parsers_ {std::move(parsers)...} {

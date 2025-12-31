@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Concepts.h"
 #include "../ParserMessage.h"
+#include "TypeTraits.h"
 #include <cstdint>
 #include <format>
 #include <span>
@@ -67,11 +67,12 @@ struct AnyInputType final {};
 
 template <class T>
 concept IsParser = std::is_same_v<T, typename T::ParserType> &&
+    std::is_same_v<typename T::InputType, AnyInputType> ||
     requires(const T& p, ParserContext<typename T::InputType>& c, typename T::ValueType& v) {
         { p.parse(c, v) } -> std::same_as<bool>;
     };
 
 template <class...Parsers>
-concept CompatibleParsers = areAllSameTypesAs<typename Parsers::InputType...>;
+concept CompatibleParsers = AllSameTypes<typename Parsers::InputType...>;
 
 } // namespace skarn::parser::details
