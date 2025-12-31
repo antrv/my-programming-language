@@ -27,7 +27,7 @@ TEST(TypePackTests, FirstN1)
     static_assert(std::is_same_v<Pack::first_n_t<1>, TypePack<int>>);
 }
 
-TEST(TypePackTests, FirstN4)
+TEST(TypePackTests, FirstN)
 {
     using Pack = TypePack<int, long, double, char>;
     static_assert(std::is_same_v<Pack::first_n_t<0>, TypePack<>>);
@@ -50,7 +50,7 @@ TEST(TypePackTests, SkipN1)
     static_assert(std::is_same_v<Pack::skip_n_t<1>, TypePack<>>);
 }
 
-TEST(TypePackTests, SkipN4)
+TEST(TypePackTests, SkipN)
 {
     using Pack = TypePack<int, long, double, char>;
     static_assert(std::is_same_v<Pack::skip_n_t<0>, TypePack<int, long, double, char>>);
@@ -74,7 +74,7 @@ TEST(TypePackTests, SubPack1)
     static_assert(std::is_same_v<Pack::subpack_t<1, 0>, TypePack<>>);
 }
 
-TEST(TypePackTests, SubPack4)
+TEST(TypePackTests, SubPack)
 {
     using Pack = TypePack<int, long, double, char>;
     static_assert(std::is_same_v<Pack::subpack_t<0, 0>, TypePack<>>);
@@ -241,7 +241,7 @@ TEST(TypePackTests, Contains1)
     static_assert(!Pack::contains<long>);
 }
 
-TEST(TypePackTests, Contains4)
+TEST(TypePackTests, Contains)
 {
     using Pack = TypePack<int, long, double, char>;
     static_assert(Pack::contains<int>);
@@ -265,7 +265,7 @@ TEST(TypePackTests, IndexOf1)
     static_assert(Pack::index_of<long> == std::numeric_limits<size_t>::max());
 }
 
-TEST(TypePackTests, IndexOf4)
+TEST(TypePackTests, IndexOf)
 {
     using Pack = TypePack<int, long, double, char>;
     static_assert(Pack::index_of<int> == 0);
@@ -273,4 +273,22 @@ TEST(TypePackTests, IndexOf4)
     static_assert(Pack::index_of<double> == 2);
     static_assert(Pack::index_of<char> == 3);
     static_assert(Pack::index_of<char8_t> == std::numeric_limits<size_t>::max());
+}
+
+TEST(TypePackTests, Unique0)
+{
+    using Pack = TypePack<>;
+    static_assert(std::is_same_v<type_pack_unique_t<Pack>, Pack>);
+}
+
+TEST(TypePackTests, Unique1)
+{
+    using Pack = TypePack<int>;
+    static_assert(std::is_same_v<type_pack_unique_t<Pack>, TypePack<int>>);
+}
+
+TEST(TypePackTests, Unique)
+{
+    using Pack = TypePack<int, long, int, char, long, long, char, char8_t>;
+    static_assert(std::is_same_v<type_pack_unique_t<Pack>, TypePack<int, long, char, char8_t>>);
 }

@@ -23,8 +23,7 @@ struct TypePackElement<0, TypePack<T, Ts...>> : std::type_identity<T> {
 
 template <size_t Index, class T, class...Ts>
 requires (Index > 0 && Index <= sizeof...(Ts))
-struct TypePackElement<Index, TypePack<T, Ts...>> :
-    std::type_identity<typename TypePackElement<Index - 1, TypePack<Ts...>>::type> {
+struct TypePackElement<Index, TypePack<T, Ts...>> : TypePackElement<Index - 1, TypePack<Ts...>> {
 };
 
 template <class T, class Pack>
@@ -50,7 +49,7 @@ struct TypePackFirstN<0, TypePack<Ts...>> : std::type_identity<TypePack<>> {
 template <size_t Size, class T, class...Ts>
 requires (Size != 0)
 struct TypePackFirstN<Size, TypePack<T, Ts...>> :
-    std::type_identity<typename TypePackInsertAtFirstPosition<T, typename TypePackFirstN<Size - 1, TypePack<Ts...>>::type>::type> {
+    TypePackInsertAtFirstPosition<T, typename TypePackFirstN<Size - 1, TypePack<Ts...>>::type> {
 };
 
 template <size_t Size, class Pack>
@@ -68,8 +67,7 @@ struct TypePackSkipN<0, TypePack<Ts...>> : std::type_identity<TypePack<Ts...>> {
 
 template <size_t Size, class T, class...Ts>
 requires (Size != 0)
-struct TypePackSkipN<Size, TypePack<T, Ts...>> :
-    std::type_identity<typename TypePackSkipN<Size - 1, TypePack<Ts...>>::type> {
+struct TypePackSkipN<Size, TypePack<T, Ts...>> : TypePackSkipN<Size - 1, TypePack<Ts...>> {
 };
 
 template <size_t Index, size_t Size, class Pack>
@@ -101,8 +99,7 @@ struct TypePackConcat<TypePack<Ts...>> : std::type_identity<TypePack<Ts...>> {
 };
 
 template <class...Ts, class...Ts2, IsSpecializationOf<TypePack>...Packs>
-struct TypePackConcat<TypePack<Ts...>, TypePack<Ts2...>, Packs...> :
-    std::type_identity<typename TypePackConcat<TypePack<Ts..., Ts2...>, Packs...>::type> {
+struct TypePackConcat<TypePack<Ts...>, TypePack<Ts2...>, Packs...> : TypePackConcat<TypePack<Ts..., Ts2...>, Packs...> {
 };
 
 template <size_t Index, class Pack, class...Ts2>
@@ -134,7 +131,9 @@ struct TypePackRemoveRange<Index, Size, TypePack<Ts...>> {
 template <size_t Index, size_t Size, class...Ts>
 requires (Index <= sizeof...(Ts) && Size <= sizeof...(Ts) && Index + Size <= sizeof...(Ts))
 struct TypePackRemoveRange<Index, Size, TypePack<Ts...>> :
-    TypePackConcat<typename TypePackFirstN<Index, TypePack<Ts...>>::type, typename TypePackSkipN<Index + Size, TypePack<Ts...>>::type> {
+    TypePackConcat<
+        typename TypePackFirstN<Index, TypePack<Ts...>>::type,
+        typename TypePackSkipN<Index + Size, TypePack<Ts...>>::type> {
 };
 
 template <class T>
@@ -160,7 +159,7 @@ struct TypePackRemove<TypePack<TFirst, Ts...>, Ts2...> : TypePackRemove<TypePack
 template <class TFirst, class...Ts, class...Ts2>
 requires (!std::is_same_v<TFirst, Ts2> && ...)
 struct TypePackRemove<TypePack<TFirst, Ts...>, Ts2...> :
-    std::type_identity<typename TypePackInsertAtFirstPosition<TFirst, typename TypePackRemove<TypePack<Ts...>, Ts2...>::type>::type> {
+    TypePackInsertAtFirstPosition<TFirst, typename TypePackRemove<TypePack<Ts...>, Ts2...>::type> {
 };
 
 template <class T, class TReplacement, class Pack>
@@ -172,12 +171,12 @@ struct TypePackReplace<T, TReplacement, TypePack<>> : std::type_identity<TypePac
 
 template <class T, class TReplacement, class...Ts>
 struct TypePackReplace<T, TReplacement, TypePack<T, Ts...>> :
-    std::type_identity<typename TypePackInsertAtFirstPosition<TReplacement, typename TypePackReplace<T, TReplacement, TypePack<Ts...>>::type>::type> {
+    TypePackInsertAtFirstPosition<TReplacement, typename TypePackReplace<T, TReplacement, TypePack<Ts...>>::type> {
 };
 
 template <class T, class TReplacement, class TFirst, class...Ts>
 struct TypePackReplace<T, TReplacement, TypePack<TFirst, Ts...>> :
-    std::type_identity<typename TypePackInsertAtFirstPosition<TFirst, typename TypePackReplace<T, TReplacement, TypePack<Ts...>>::type>::type> {
+    TypePackInsertAtFirstPosition<TFirst, typename TypePackReplace<T, TReplacement, TypePack<Ts...>>::type> {
 };
 
 template <class T, class Pack>
@@ -198,6 +197,18 @@ struct TypePackIndexOf<T, TypePack<TFirst, Ts...>> :
             std::numeric_limits<size_t>::max() : TypePackIndexOf<T, TypePack<Ts...>>::value + 1> {
 };
 
+template <class Pack>
+struct TypePackUnique;
+
+template <>
+struct TypePackUnique<TypePack<>> : std::type_identity<TypePack<>> {
+};
+
+template <class T, class...Ts>
+struct TypePackUnique<TypePack<T, Ts...>> :
+    TypePackInsertAtFirstPosition<T, typename TypePackUnique<typename TypePackRemove<TypePack<Ts...>, T>::type>::type> {
+};
+
 } // namespace details
 
 template <class...Ts>
@@ -216,7 +227,7 @@ struct TypePack : std::type_identity<TypePack<Ts...>> {
     template <size_t Index, size_t Size>
     using subpack_t = details::TypePackSubPack<Index, Size, TypePack>::type;
 
-    template <class...Packs>
+    template <IsSpecializationOf<TypePack>...Packs>
     using concat_t = details::TypePackConcat<TypePack, Packs...>::type;
 
     template <size_t Index, class...Ts2>
@@ -246,5 +257,8 @@ using type_pack_concat_t = details::TypePackConcat<Packs...>::type;
 
 template <IsSpecializationOf<TypePack> Pack>
 using type_pack_flatten_t = details::TypePackFlatten<Pack>::type;
+
+template <IsSpecializationOf<TypePack> Pack>
+using type_pack_unique_t = details::TypePackUnique<Pack>::type;
 
 } // namespace skarn
