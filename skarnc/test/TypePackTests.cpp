@@ -122,6 +122,8 @@ TEST(TypePackTests, InsertAt)
     static_assert(std::is_same_v<Pack::insert_at_t<2, float>, TypePack<int, long, float, double, char>>);
     static_assert(std::is_same_v<Pack::insert_at_t<3, float>, TypePack<int, long, double, float, char>>);
     static_assert(std::is_same_v<Pack::insert_at_t<4, float>, TypePack<int, long, double, char, float>>);
+
+    static_assert(std::is_same_v<Pack::insert_at_t<2, float, unsigned>, TypePack<int, long, float, unsigned, double, char>>);
 }
 
 TEST(TypePackTests, RemoveAt)
@@ -174,6 +176,8 @@ TEST(TypePackTests, RemoveType)
     static_assert(std::is_same_v<Pack::remove_t<double>, TypePack<int, long, int, char, char, int>>);
     static_assert(std::is_same_v<Pack::remove_t<char>, TypePack<int, long, int, double, double, double, int>>);
     static_assert(std::is_same_v<Pack::remove_t<char8_t>, Pack>);
+    static_assert(std::is_same_v<Pack::remove_t<char, int>, TypePack<long, double, double, double>>);
+    static_assert(std::is_same_v<Pack::remove_t<char, int, double>, TypePack<long>>);
 }
 
 TEST(TypePackTests, ReplaceType0)

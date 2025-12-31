@@ -105,19 +105,19 @@ struct TypePackConcat<TypePack<Ts...>, TypePack<Ts2...>, Packs...> :
     std::type_identity<typename TypePackConcat<TypePack<Ts..., Ts2...>, Packs...>::type> {
 };
 
-template <class T, size_t Index, class Pack>
+template <size_t Index, class Pack, class...Ts2>
 struct TypePackInsertAt;
 
-template <class T, size_t Index, class...Ts>
+template <size_t Index, class...Ts, class...Ts2>
 requires (Index > sizeof...(Ts))
-struct TypePackInsertAt<T, Index, TypePack<Ts...>> {
+struct TypePackInsertAt<Index, TypePack<Ts...>, Ts2...> {
     static_assert(AlwaysFalse<std::integral_constant<size_t, Index>>, "Index out of range");
 };
 
-template <class T, size_t Index, class...Ts>
+template <size_t Index, class...Ts, class...Ts2>
 requires (Index <= sizeof...(Ts))
-struct TypePackInsertAt<T, Index, TypePack<Ts...>> :
-    TypePackConcat<typename TypePackFirstN<Index, TypePack<Ts...>>::type, TypePack<T>, typename TypePackSkipN<Index, TypePack<Ts...>>::type> {
+struct TypePackInsertAt<Index, TypePack<Ts...>, Ts2...> :
+    TypePackConcat<typename TypePackFirstN<Index, TypePack<Ts...>>::type, TypePack<Ts2...>, typename TypePackSkipN<Index, TypePack<Ts...>>::type> {
 };
 
 template <size_t Index, size_t Size, class Pack>
@@ -145,20 +145,22 @@ template <class...Ts>
 struct TypePackFlatten<TypePack<Ts...>> : TypePackConcat<typename TypePackFlatten<Ts>::type...> {
 };
 
-template <class T, class Pack>
+template <class Pack, class...Ts2>
 struct TypePackRemove;
 
-template <class T>
-struct TypePackRemove<T, TypePack<>> : std::type_identity<TypePack<>> {
+template <class...Ts2>
+struct TypePackRemove<TypePack<>, Ts2...> : std::type_identity<TypePack<>> {
 };
 
-template <class T, class...Ts>
-struct TypePackRemove<T, TypePack<T, Ts...>> : TypePackRemove<T, TypePack<Ts...>> {
+template <class TFirst, class...Ts, class...Ts2>
+requires (std::is_same_v<TFirst, Ts2> || ...)
+struct TypePackRemove<TypePack<TFirst, Ts...>, Ts2...> : TypePackRemove<TypePack<Ts...>, Ts2...> {
 };
 
-template <class T, class TFirst, class...Ts>
-struct TypePackRemove<T, TypePack<TFirst, Ts...>> :
-    std::type_identity<typename TypePackInsertAtFirstPosition<TFirst, typename TypePackRemove<T, TypePack<Ts...>>::type>::type> {
+template <class TFirst, class...Ts, class...Ts2>
+requires (!std::is_same_v<TFirst, Ts2> && ...)
+struct TypePackRemove<TypePack<TFirst, Ts...>, Ts2...> :
+    std::type_identity<typename TypePackInsertAtFirstPosition<TFirst, typename TypePackRemove<TypePack<Ts...>, Ts2...>::type>::type> {
 };
 
 template <class T, class TReplacement, class Pack>
@@ -217,8 +219,8 @@ struct TypePack : std::type_identity<TypePack<Ts...>> {
     template <class...Packs>
     using concat_t = details::TypePackConcat<TypePack, Packs...>::type;
 
-    template <size_t Index, class T>
-    using insert_at_t = details::TypePackInsertAt<T, Index, TypePack>::type;
+    template <size_t Index, class...Ts2>
+    using insert_at_t = details::TypePackInsertAt<Index, TypePack, Ts2...>::type;
 
     template <size_t Index>
     using remove_at_t = details::TypePackRemoveRange<Index, 1, TypePack>::type;
@@ -226,8 +228,8 @@ struct TypePack : std::type_identity<TypePack<Ts...>> {
     template <size_t Index, size_t Size>
     using remove_range_t = details::TypePackRemoveRange<Index, Size, TypePack>::type;
 
-    template <class T>
-    using remove_t = details::TypePackRemove<T, TypePack>::type;
+    template <class...Ts2>
+    using remove_t = details::TypePackRemove<TypePack, Ts2...>::type;
 
     template <class T, class TReplacement>
     using replace_t = details::TypePackReplace<T, TReplacement, TypePack>::type;
