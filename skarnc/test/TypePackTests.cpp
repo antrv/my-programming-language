@@ -267,6 +267,8 @@ TEST(TypePackTests, IndexOf0)
     using Pack = TypePack<>;
     static_assert(Pack::index_of<int> == std::numeric_limits<size_t>::max());
     static_assert(Pack::index_of<long> == std::numeric_limits<size_t>::max());
+    static_assert(Pack::index_of_any<int, long> == std::numeric_limits<size_t>::max());
+    static_assert(Pack::index_of_any<> == std::numeric_limits<size_t>::max());
 }
 
 TEST(TypePackTests, IndexOf1)
@@ -274,6 +276,9 @@ TEST(TypePackTests, IndexOf1)
     using Pack = TypePack<int>;
     static_assert(Pack::index_of<int> == 0);
     static_assert(Pack::index_of<long> == std::numeric_limits<size_t>::max());
+    static_assert(Pack::index_of_any<int, long> == 0);
+    static_assert(Pack::index_of_any<char, long> == std::numeric_limits<size_t>::max());
+    static_assert(Pack::index_of_any<> == std::numeric_limits<size_t>::max());
 }
 
 TEST(TypePackTests, IndexOf)
@@ -284,6 +289,10 @@ TEST(TypePackTests, IndexOf)
     static_assert(Pack::index_of<double> == 2);
     static_assert(Pack::index_of<char> == 3);
     static_assert(Pack::index_of<char8_t> == std::numeric_limits<size_t>::max());
+    static_assert(Pack::index_of_any<char> == 3);
+    static_assert(Pack::index_of_any<char, double> == 2);
+    static_assert(Pack::index_of_any<unsigned, char8_t> == std::numeric_limits<size_t>::max());
+    static_assert(Pack::index_of_any<> == std::numeric_limits<size_t>::max());
 }
 
 TEST(TypePackTests, Unique0)

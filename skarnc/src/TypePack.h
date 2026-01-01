@@ -179,22 +179,24 @@ struct TypePackReplace<T, TReplacement, TypePack<TFirst, Ts...>> :
     TypePackInsertAtFirstPosition<TFirst, typename TypePackReplace<T, TReplacement, TypePack<Ts...>>::type> {
 };
 
-template <class T, class Pack>
-struct TypePackIndexOf;
+template <class Pack, class...Ts>
+struct TypePackIndexOfAny;
 
-template <class T>
-struct TypePackIndexOf<T, TypePack<>> : std::integral_constant<size_t, std::numeric_limits<size_t>::max()> {
+template <class...Ts>
+struct TypePackIndexOfAny<TypePack<>, Ts...> : std::integral_constant<size_t, std::numeric_limits<size_t>::max()> {
 };
 
-template <class T, class...Ts>
-struct TypePackIndexOf<T, TypePack<T, Ts...>> : std::integral_constant<size_t, 0> {
+template <class TFirst, class...Ts, class...Ts2>
+requires (std::is_same_v<TFirst, Ts2> || ...)
+struct TypePackIndexOfAny<TypePack<TFirst, Ts...>, Ts2...> : std::integral_constant<size_t, 0> {
 };
 
-template <class T, class TFirst, class...Ts>
-struct TypePackIndexOf<T, TypePack<TFirst, Ts...>> :
+template <class TFirst, class...Ts, class...Ts2>
+requires (!std::is_same_v<TFirst, Ts2> && ...)
+struct TypePackIndexOfAny<TypePack<TFirst, Ts...>, Ts2...> :
     std::integral_constant<size_t,
-        TypePackIndexOf<T, TypePack<Ts...>>::value == std::numeric_limits<size_t>::max() ?
-            std::numeric_limits<size_t>::max() : TypePackIndexOf<T, TypePack<Ts...>>::value + 1> {
+        TypePackIndexOfAny<TypePack<Ts...>, Ts2...>::value == std::numeric_limits<size_t>::max() ?
+            std::numeric_limits<size_t>::max() : TypePackIndexOfAny<TypePack<Ts...>, Ts2...>::value + 1> {
 };
 
 template <class Pack>
@@ -255,10 +257,13 @@ struct TypePack : std::type_identity<TypePack<Ts...>> {
     static constexpr bool contains_any = (contains<Ts2> || ...);
 
     template <class T>
-    static constexpr size_t index_of = details::TypePackIndexOf<T, TypePack>::value;
+    static constexpr size_t index_of = details::TypePackIndexOfAny<TypePack, T>::value;
 
-    template <template <class...> class Target>
-    using apply_to_t = Target<Ts...>;
+    template <class...Ts2>
+    static constexpr size_t index_of_any = details::TypePackIndexOfAny<TypePack, Ts2...>::value;
+
+    template <template <class...> class Template>
+    using apply_to_t = Template<Ts...>;
 };
 
 template <IsSpecializationOf<TypePack>...Packs>
