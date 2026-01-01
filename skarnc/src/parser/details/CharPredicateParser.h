@@ -12,8 +12,8 @@ class CharPredicateParser final {
 
 public:
     using ParserType = CharPredicateParser;
-    using ValueType = char;
     using InputType = char;
+    using ValueType = char;
 
     explicit constexpr CharPredicateParser(Predicate predicate, const std::string_view what) noexcept
         : predicate_ {std::move(predicate)}

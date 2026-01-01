@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../ParserMessage.h"
-#include "TypeTraits.h"
+#include "TypePack.h"
 #include <cstdint>
 #include <format>
 #include <span>
@@ -63,16 +63,25 @@ public:
     }
 };
 
-struct AnyInputType final {};
+struct AnyInputType final {
+    AnyInputType() = delete;
+};
 
 template <class T>
-concept IsParser = std::is_same_v<T, typename T::ParserType> &&
-    std::is_same_v<typename T::InputType, AnyInputType> ||
+concept Parser = std::is_same_v<typename T::InputType, AnyInputType> ||
+    // TODO: check parse method signature in the case of InputType is AnyInputType
     requires(const T& p, ParserContext<typename T::InputType>& c, typename T::ValueType& v) {
         { p.parse(c, v) } -> std::same_as<bool>;
     };
 
 template <class...Parsers>
-concept CompatibleParsers = AllSameTypes<typename Parsers::InputType...>;
+concept CompatibleParsers = (Parser<Parsers> && ...) &&
+    TypePack<typename Parsers::InputType...>::template remove_t<AnyInputType>::all_same;
+
+template <Parser...Parsers>
+using InputTypeOf = TypePack<typename Parsers::InputType...>::
+    template remove_t<AnyInputType>::
+    template insert_last_t<AnyInputType>::
+    template element_t<0>;
 
 } // namespace skarn::parser::details

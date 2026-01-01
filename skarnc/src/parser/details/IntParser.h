@@ -9,8 +9,8 @@ template <std::integral T, int Base = 10>
 class IntParser final {
 public:
     using ParserType = IntParser;
-    using ValueType = T;
     using InputType = char;
+    using ValueType = T;
 
     bool parse(ParserContext<char>& ctx, T& value) const {
         const std::span<const char> input = ctx.input();

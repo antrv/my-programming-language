@@ -5,14 +5,14 @@
 
 namespace skarn::parser::details {
 
-template <IsParser Parser>
+template <Parser Parser>
 class OptionalParser final {
     Parser parser_;
 
 public:
     using ParserType = OptionalParser;
-    using ValueType = std::optional<typename Parser::ValueType>;
     using InputType = Parser::InputType;
+    using ValueType = std::optional<typename Parser::ValueType>;
 
     explicit constexpr OptionalParser(Parser parser) noexcept
         : parser_ {std::move(parser)} {

@@ -10,8 +10,8 @@ class ElemParser final {
 
 public:
     using ParserType = ElemParser;
-    using ValueType = Elem;
     using InputType = Elem;
+    using ValueType = Elem;
 
     explicit constexpr ElemParser(Elem elem) noexcept
         : elem_ {std::move(elem)} {

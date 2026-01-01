@@ -1,20 +1,12 @@
 #pragma once
 
 #include "ParserContext.h"
-#include "Concepts.h"
+#include "TypePack.h"
 #include <tuple>
 
 namespace skarn::parser::details {
 
-// TODO: move to typepack
-template <class...Ts>
-struct FirstItem;
-
-template <class T, class...Ts>
-struct FirstItem<T, Ts...> : std::type_identity<T> {
-};
-
-template <IsParser...Parsers>
+template <Parser...Parsers>
 requires (sizeof...(Parsers) >= 2 && CompatibleParsers<Parsers...>)
 class CombinedParser final {
     std::tuple<Parsers...> parsers_;
@@ -22,7 +14,7 @@ class CombinedParser final {
 public:
     using ParserType = CombinedParser;
     using ValueType = std::tuple<typename Parsers::ValueType...>;
-    using InputType = FirstItem<typename Parsers::InputType...>::type;
+    using InputType = InputTypeOf<Parsers...>;
 
     explicit constexpr CombinedParser(Parsers... parsers) noexcept
         : parsers_ {std::move(parsers)...} {
@@ -39,20 +31,20 @@ public:
     }
 };
 
-template <IsParser...Parsers>
+template <Parser...Parsers>
 requires (sizeof...(Parsers) >= 2 && CompatibleParsers<Parsers...>)
 constexpr auto makeCombinedParser(Parsers... parsers) noexcept {
     // Helper to turn a single parser into a tuple (for concatenation)
-    const auto toTuple = []<IsParser P>(P&& p) static constexpr noexcept {
-        if constexpr (isSpecializationOf<P, CombinedParser>) {
+    const auto toTuple = []<Parser P>(P&& p) static constexpr noexcept {
+        if constexpr (SpecializationOf<P, CombinedParser>) {
             return p.parsers(); // It's a CombinedParser, return its internal tuple
         } else {
             return std::tuple<std::decay_t<P>> {std::forward<P>(p)};
         }
     };
 
-    return std::apply([]<IsParser...FlattenedParsers>(FlattenedParsers...flattenedParsers) static constexpr noexcept {
-        return CombinedParser<std::decay_t<FlattenedParsers>...>{std::move(flattenedParsers)...};
+    return std::apply([]<Parser...FlattenedParsers>(FlattenedParsers...flattenedParsers) static constexpr noexcept {
+        return CombinedParser<std::decay_t<FlattenedParsers>...> {std::move(flattenedParsers)...};
     }, std::tuple_cat(toTuple(std::move(parsers))...));
 }
 

@@ -318,3 +318,10 @@ TEST(TypePackTests, ApplyTo)
     using Pack = TypePack<int, long, char, double>;
     static_assert(std::is_same_v<Pack::apply_to_t<std::tuple>, std::tuple<int, long, char, double>>);
 }
+
+TEST(TypePackTests, From)
+{
+    static_assert(std::is_same_v<type_pack_from_t<std::tuple<int, long, double>>, TypePack<int, long, double>>);
+    static_assert(std::is_same_v<type_pack_from_t<std::pair<int, long>>, TypePack<int, long>>);
+    static_assert(std::is_same_v<type_pack_from_t<int>, TypePack<int>>);
+}

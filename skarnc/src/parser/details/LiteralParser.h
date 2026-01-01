@@ -9,8 +9,8 @@ class LiteralParser final {
 
 public:
     using ParserType = LiteralParser;
-    using ValueType = std::string_view;
     using InputType = char;
+    using ValueType = std::string_view;
 
     explicit constexpr LiteralParser(const std::string_view literal) noexcept
         : literal_ {literal}

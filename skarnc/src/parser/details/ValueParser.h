@@ -10,8 +10,8 @@ class ValueParser final {
 
 public:
     using ParserType = ValueParser;
-    using ValueType = Value;
     using InputType = AnyInputType;
+    using ValueType = Value;
 
     explicit constexpr ValueParser(Value value) noexcept
         : value_ {std::move(value)} {

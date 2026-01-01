@@ -9,8 +9,8 @@ class CharParser final {
 
 public:
     using ParserType = CharParser;
-    using ValueType = char;
     using InputType = char;
+    using ValueType = char;
 
     explicit constexpr CharParser(const char character) noexcept
         : char_ {character} {

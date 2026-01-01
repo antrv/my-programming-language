@@ -87,7 +87,7 @@ struct TypePackSubPack<Index, Size, TypePack<Ts...>> :
     TypePackFirstN<Size, typename TypePackSkipN<Index, TypePack<Ts...>>::type> {
 };
 
-template <IsSpecializationOf<TypePack>...Packs>
+template <SpecializationOf<TypePack>...Packs>
 struct TypePackConcat;
 
 template <>
@@ -98,7 +98,7 @@ template <class...Ts>
 struct TypePackConcat<TypePack<Ts...>> : std::type_identity<TypePack<Ts...>> {
 };
 
-template <class...Ts, class...Ts2, IsSpecializationOf<TypePack>...Packs>
+template <class...Ts, class...Ts2, SpecializationOf<TypePack>...Packs>
 struct TypePackConcat<TypePack<Ts...>, TypePack<Ts2...>, Packs...> : TypePackConcat<TypePack<Ts..., Ts2...>, Packs...> {
 };
 
@@ -211,6 +211,14 @@ struct TypePackUnique<TypePack<T, Ts...>> :
     TypePackInsertAtFirstPosition<T, typename TypePackUnique<typename TypePackRemove<TypePack<Ts...>, T>::type>::type> {
 };
 
+template <class T>
+struct TypePackFrom : std::type_identity<TypePack<T>> {
+};
+
+template <template <class...> class Template, class... Ts>
+struct TypePackFrom<Template<Ts...>> : std::type_identity<TypePack<Ts...>> {
+};
+
 } // namespace details
 
 template <class...Ts>
@@ -229,11 +237,17 @@ struct TypePack : std::type_identity<TypePack<Ts...>> {
     template <size_t Index, size_t Size>
     using subpack_t = details::TypePackSubPack<Index, Size, TypePack>::type;
 
-    template <IsSpecializationOf<TypePack>...Packs>
+    template <SpecializationOf<TypePack>...Packs>
     using concat_t = details::TypePackConcat<TypePack, Packs...>::type;
 
     template <size_t Index, class...Ts2>
     using insert_at_t = details::TypePackInsertAt<Index, TypePack, Ts2...>::type;
+
+    template <class...Ts2>
+    using insert_first_t = TypePack<Ts2..., Ts...>;
+
+    template <class...Ts2>
+    using insert_last_t = TypePack<Ts..., Ts2...>;
 
     template <size_t Index>
     using remove_at_t = details::TypePackRemoveRange<Index, 1, TypePack>::type;
@@ -264,15 +278,20 @@ struct TypePack : std::type_identity<TypePack<Ts...>> {
 
     template <template <class...> class Template>
     using apply_to_t = Template<Ts...>;
+
+    static constexpr bool all_same = details::all_same_types<Ts...>;
 };
 
-template <IsSpecializationOf<TypePack>...Packs>
+template <SpecializationOf<TypePack>...Packs>
 using type_pack_concat_t = details::TypePackConcat<Packs...>::type;
 
-template <IsSpecializationOf<TypePack> Pack>
+template <SpecializationOf<TypePack> Pack>
 using type_pack_flatten_t = details::TypePackFlatten<Pack>::type;
 
-template <IsSpecializationOf<TypePack> Pack>
+template <SpecializationOf<TypePack> Pack>
 using type_pack_unique_t = details::TypePackUnique<Pack>::type;
+
+template <class T>
+using type_pack_from_t = details::TypePackFrom<T>::type;
 
 } // namespace skarn
