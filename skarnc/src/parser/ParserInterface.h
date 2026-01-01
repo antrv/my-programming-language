@@ -10,7 +10,7 @@ namespace skarn::parser {
 template <class Value>
 using ParserResult = std::expected<Value, ParseMessages>;
 
-template <class Elem, details::IsParser<Elem> Parser>
+template <details::Parser Parser>
 class ParserInterface final {
     Parser parser_;
 
@@ -41,20 +41,20 @@ public:
         return std::unexpected(std::move(context).messages());
     }
 
-    template <details::IsParser<Elem> NextParser>
-    constexpr auto operator >>(const ParserInterface<Elem, NextParser>& next) const noexcept {
-        using ResultParser = decltype(details::makeCombinedParser<Elem>(parser_, next.parser()));
-        return ParserInterface<Elem, ResultParser> {details::makeCombinedParser<Elem>(parser_, next.parser())};
+    template <details::Parser NextParser>
+    constexpr auto operator >>(const ParserInterface<NextParser>& next) const noexcept {
+        using ResultParser = decltype(details::makeCombinedParser(parser_, next.parser()));
+        return ParserInterface<ResultParser> {details::makeCombinedParser(parser_, next.parser())};
     }
 
-    template <details::IsParser<Elem> NextParser>
-    constexpr auto operator ||(const ParserInterface<Elem, NextParser>& next) const noexcept {
-        using ResultParser = decltype(details::makeVariantParser<Elem>(parser_, next.parser()));
-        return ParserInterface<Elem, ResultParser> {details::makeVariantParser<Elem>(parser_, next.parser())};
+    template <details::Parser NextParser>
+    constexpr auto operator ||(const ParserInterface<NextParser>& next) const noexcept {
+        using ResultParser = decltype(details::makeVariantParser(parser_, next.parser()));
+        return ParserInterface<ResultParser> {details::makeVariantParser(parser_, next.parser())};
     }
 
     constexpr auto optional() const noexcept {
-        return ParserInterface<Elem, details::OptionalParser<Elem, Parser>> {};
+        return ParserInterface<details::OptionalParser<Parser>> {};
     }
 };
 
