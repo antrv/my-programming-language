@@ -7,37 +7,80 @@ using namespace std::string_view_literals;
 using namespace skarn::parser;
 using namespace skarn::parser::details;
 
-TEST(CombinedParserTests, CombinedParser)
+TEST(CombinedParserTests, Success)
 {
     constexpr auto parser = makeCombinedParser(
-        LiteralParser {"template"}, CharParser {' '}, LiteralParser {"class"});
+        LiteralParser {"template"sv}, CharParser {' '}, LiteralParser {"class"sv});
 
-    ParserContext<char> ctx1 {"template class 1234"};
-    std::tuple<std::string_view, char, std::string_view> value1 {};
-    ASSERT_TRUE(parser.parse(ctx1, value1));
-    EXPECT_EQ(value1, std::make_tuple("template"sv, ' ', "class"sv));
+    constexpr std::string_view input {"template class 1234"sv};
+    ParserContext<char> ctx {input};
+    std::tuple<std::string_view, char, std::string_view> value {};
+    ASSERT_TRUE(parser.parse(ctx, value));
+    EXPECT_EQ(value, std::make_tuple("template"sv, ' ', "class"sv));
+    EXPECT_EQ(std::string_view {ctx.input()}, " 1234"sv);
+}
 
-    ParserContext<char> ctx2 {""};
-    std::tuple<std::string_view, char, std::string_view> value2 {};
-    ASSERT_FALSE(parser.parse(ctx2, value2));
-    const auto& msgs2 = ctx2.messages();
-    ASSERT_EQ(msgs2.size(), 1);
-    EXPECT_EQ(msgs2[0].level, ParserMsgLevel::Error);
-    EXPECT_EQ(msgs2[0].code, ParserMsgCode::C0001);
-    EXPECT_EQ(msgs2[0].message, "Unexpected end of input, expected 'template'");
-    EXPECT_EQ(msgs2[0].position, 0);
-    EXPECT_EQ(msgs2[0].line, 1U);
-    EXPECT_EQ(msgs2[0].column, 1U);
+TEST(CombinedParserTests, EmptyInput)
+{
+    constexpr auto parser = makeCombinedParser(
+        LiteralParser {"template"sv}, CharParser {' '}, LiteralParser {"class"sv});
 
-    ParserContext<char> ctx3 {""};
-    std::tuple<std::string_view, char, std::string_view> value3 {};
-    ASSERT_FALSE(parser.parse(ctx3, value3));
-    const auto& msgs3 = ctx3.messages();
-    ASSERT_EQ(msgs3.size(), 1);
-    EXPECT_EQ(msgs3[0].level, ParserMsgLevel::Error);
-    EXPECT_EQ(msgs3[0].code, ParserMsgCode::C0002);
-    EXPECT_EQ(msgs3[0].message, "Unexpected input 'xxx bbb', expected 'template'");
-    EXPECT_EQ(msgs3[0].position, 0);
-    EXPECT_EQ(msgs3[0].line, 1U);
-    EXPECT_EQ(msgs3[0].column, 1U);
+    constexpr std::string_view input;
+    ParserContext<char> ctx {input};
+    std::tuple<std::string_view, char, std::string_view> value {};
+    ASSERT_FALSE(parser.parse(ctx, value));
+    EXPECT_EQ(std::string_view {ctx.input()}, input);
+
+    const auto& messages = ctx.messages();
+    ASSERT_EQ(messages.size(), 1);
+    EXPECT_EQ(messages[0].level, ParserMsgLevel::Error);
+    EXPECT_EQ(messages[0].code, ParserMsgCode::C0001);
+    EXPECT_EQ(messages[0].message, "Unexpected end of input, expected 'template'"sv);
+    EXPECT_EQ(messages[0].position, 0);
+    EXPECT_EQ(messages[0].line, 1U);
+    EXPECT_EQ(messages[0].column, 1U);
+}
+
+TEST(CombinedParserTests, PartiallyValidInput)
+{
+    constexpr auto parser = makeCombinedParser(
+        LiteralParser {"template"sv}, CharParser {' '}, LiteralParser {"class"sv});
+
+    constexpr std::string_view input {"template struct"sv};
+    ParserContext<char> ctx {input};
+    std::tuple<std::string_view, char, std::string_view> value {};
+    ASSERT_FALSE(parser.parse(ctx, value));
+    EXPECT_EQ(std::get<0>(value), "template"sv);
+    EXPECT_EQ(std::get<1>(value), ' ');
+    EXPECT_EQ(std::string_view {ctx.input()}, "struct"sv);
+
+    const auto& messages = ctx.messages();
+    ASSERT_EQ(messages.size(), 1);
+    EXPECT_EQ(messages[0].level, ParserMsgLevel::Error);
+    EXPECT_EQ(messages[0].code, ParserMsgCode::C0002);
+    EXPECT_EQ(messages[0].message, "Unexpected input 'struct', expected 'class'"sv);
+    EXPECT_EQ(messages[0].position, 9);
+    EXPECT_EQ(messages[0].line, 1U);
+    EXPECT_EQ(messages[0].column, 10U);
+}
+
+TEST(CombinedParserTests, InvalidInput)
+{
+    constexpr auto parser = makeCombinedParser(
+        LiteralParser {"template"sv}, CharParser {' '}, LiteralParser {"class"sv});
+
+    constexpr std::string_view input {"xxx bbb"sv};
+    ParserContext<char> ctx {input};
+    std::tuple<std::string_view, char, std::string_view> value {};
+    ASSERT_FALSE(parser.parse(ctx, value));
+    EXPECT_EQ(std::string_view {ctx.input()}, input);
+
+    const auto& messages = ctx.messages();
+    ASSERT_EQ(messages.size(), 1);
+    EXPECT_EQ(messages[0].level, ParserMsgLevel::Error);
+    EXPECT_EQ(messages[0].code, ParserMsgCode::C0002);
+    EXPECT_EQ(messages[0].message, "Unexpected input 'xxx bbb', expected 'template'"sv);
+    EXPECT_EQ(messages[0].position, 0);
+    EXPECT_EQ(messages[0].line, 1U);
+    EXPECT_EQ(messages[0].column, 1U);
 }

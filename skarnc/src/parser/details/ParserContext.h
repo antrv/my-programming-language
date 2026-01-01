@@ -13,21 +13,21 @@ template <class Input>
 class ParserContext final {
     std::span<const Input> input_;
     ParseMessages messages_;
-    bool reportMessages_ = true;
 
-    struct Position {
+    struct State {
         size_t position;
         uint32_t line;
         uint32_t column;
+        bool reportMessages;
     };
 
-    std::stack<Position> positions_;
-    Position current_;
+    std::stack<State> states_;
+    State current_;
 
 public:
     explicit ParserContext(const std::span<const Input> input) noexcept
         : input_ {input}
-        , current_ {0, 1, 1} {
+        , current_ {0, 1, 1, true} {
     }
 
     [[nodiscard]] std::span<const Input> input() const {
@@ -48,9 +48,26 @@ public:
         return std::move(messages_);
     }
 
+    void report_messages(const bool value = true) noexcept {
+        current_.reportMessages = value;
+    }
+
+    void push_state() {
+        states_.push(current_);
+    }
+
+    void restore_state() {
+        current_ = states_.top();
+        states_.pop();
+    }
+
+    void pop_state() {
+        states_.pop();
+    }
+
     template <class...Args>
     void addMsg(const ParserMsgLevel level, const ParserMsgCode code, std::format_string<Args...> fmt, Args&&...args) {
-        if (reportMessages_) {
+        if (current_.reportMessages) {
             messages_.push_back(ParserMessage {
                 .level = level,
                 .code = code,

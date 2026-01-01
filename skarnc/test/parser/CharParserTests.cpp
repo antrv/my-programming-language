@@ -1,39 +1,56 @@
 #include <gtest/gtest.h>
 #include "parser/details/CharParser.h"
 
+using namespace std::string_view_literals;
 using namespace skarn::parser;
 using namespace skarn::parser::details;
 
-TEST(CharParserTests, CharParser)
-{
+TEST(CharParserTests, Success) {
     constexpr CharParser parser {'a'};
 
-    ParserContext<char> ctx1 {"a"};
-    char value1 {};
-    ASSERT_TRUE(parser.parse(ctx1, value1));
-    EXPECT_EQ(value1, 'a');
+    constexpr std::string_view input {"a"sv};
+    ParserContext<char> ctx {input};
+    char value {};
+    ASSERT_TRUE(parser.parse(ctx, value));
+    EXPECT_EQ(value, 'a');
+    EXPECT_TRUE(ctx.messages().empty());
+    EXPECT_TRUE(ctx.input().empty());
+}
 
-    ParserContext<char> ctx2 {""};
-    char value2 {};
-    ASSERT_FALSE(parser.parse(ctx2, value2));
-    const auto& msgs2 = ctx2.messages();
-    ASSERT_EQ(msgs2.size(), 1);
-    EXPECT_EQ(msgs2[0].level, ParserMsgLevel::Error);
-    EXPECT_EQ(msgs2[0].code, ParserMsgCode::C0001);
-    EXPECT_EQ(msgs2[0].message, "Unexpected end of input, expected 'a'");
-    EXPECT_EQ(msgs2[0].position, 0);
-    EXPECT_EQ(msgs2[0].line, 1U);
-    EXPECT_EQ(msgs2[0].column, 1U);
+TEST(CharParserTests, EmptyInput) {
+    constexpr CharParser parser {'a'};
 
-    ParserContext<char> ctx3 {"b"};
-    char value3 {};
-    ASSERT_FALSE(parser.parse(ctx3, value3));
-    const auto& msgs3 = ctx3.messages();
-    ASSERT_EQ(msgs3.size(), 1);
-    EXPECT_EQ(msgs3[0].level, ParserMsgLevel::Error);
-    EXPECT_EQ(msgs3[0].code, ParserMsgCode::C0002);
-    EXPECT_EQ(msgs3[0].message, "Unexpected input 'b', expected 'a'");
-    EXPECT_EQ(msgs3[0].position, 0);
-    EXPECT_EQ(msgs3[0].line, 1U);
-    EXPECT_EQ(msgs3[0].column, 1U);
+    constexpr std::string_view input;
+    ParserContext<char> ctx {input};
+    char value {};
+    ASSERT_FALSE(parser.parse(ctx, value));
+    EXPECT_EQ(std::string_view {ctx.input()}, input);
+
+    const auto& messages = ctx.messages();
+    ASSERT_EQ(messages.size(), 1);
+    EXPECT_EQ(messages[0].level, ParserMsgLevel::Error);
+    EXPECT_EQ(messages[0].code, ParserMsgCode::C0001);
+    EXPECT_EQ(messages[0].message, "Unexpected end of input, expected 'a'"sv);
+    EXPECT_EQ(messages[0].position, 0);
+    EXPECT_EQ(messages[0].line, 1U);
+    EXPECT_EQ(messages[0].column, 1U);
+}
+
+TEST(CharParserTests, InvalidInput) {
+    constexpr CharParser parser {'a'};
+
+    constexpr std::string_view input {"b"sv};
+    ParserContext<char> ctx {input};
+    char value {};
+    ASSERT_FALSE(parser.parse(ctx, value));
+    EXPECT_EQ(std::string_view {ctx.input()}, input);
+
+    const auto& messages = ctx.messages();
+    ASSERT_EQ(messages.size(), 1);
+    EXPECT_EQ(messages[0].level, ParserMsgLevel::Error);
+    EXPECT_EQ(messages[0].code, ParserMsgCode::C0002);
+    EXPECT_EQ(messages[0].message, "Unexpected input 'b', expected 'a'"sv);
+    EXPECT_EQ(messages[0].position, 0);
+    EXPECT_EQ(messages[0].line, 1U);
+    EXPECT_EQ(messages[0].column, 1U);
 }
