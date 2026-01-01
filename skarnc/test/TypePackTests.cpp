@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "TypePack.h"
+#include <tuple>
 
 using namespace skarn;
 
@@ -232,6 +233,8 @@ TEST(TypePackTests, Contains0)
     using Pack = TypePack<>;
     static_assert(!Pack::contains<int>);
     static_assert(!Pack::contains<long>);
+    static_assert(!Pack::contains_any<int, long>);
+    static_assert(!Pack::contains_all<int, long>);
 }
 
 TEST(TypePackTests, Contains1)
@@ -239,6 +242,10 @@ TEST(TypePackTests, Contains1)
     using Pack = TypePack<int>;
     static_assert(Pack::contains<int>);
     static_assert(!Pack::contains<long>);
+    static_assert(Pack::contains_any<int, long>);
+    static_assert(!Pack::contains_any<float, double>);
+    static_assert(Pack::contains_all<int>);
+    static_assert(!Pack::contains_all<int, long>);
 }
 
 TEST(TypePackTests, Contains)
@@ -249,6 +256,10 @@ TEST(TypePackTests, Contains)
     static_assert(Pack::contains<double>);
     static_assert(Pack::contains<char>);
     static_assert(!Pack::contains<char8_t>);
+    static_assert(Pack::contains_any<int, unsigned>);
+    static_assert(!Pack::contains_any<char8_t, char16_t>);
+    static_assert(Pack::contains_all<int, char>);
+    static_assert(!Pack::contains_all<int, char8_t>);
 }
 
 TEST(TypePackTests, IndexOf0)
@@ -291,4 +302,10 @@ TEST(TypePackTests, Unique)
 {
     using Pack = TypePack<int, long, int, char, long, long, char, char8_t>;
     static_assert(std::is_same_v<type_pack_unique_t<Pack>, TypePack<int, long, char, char8_t>>);
+}
+
+TEST(TypePackTests, ApplyTo)
+{
+    using Pack = TypePack<int, long, char, double>;
+    static_assert(std::is_same_v<Pack::apply_to_t<std::tuple>, std::tuple<int, long, char, double>>);
 }

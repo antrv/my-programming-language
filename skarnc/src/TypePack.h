@@ -248,8 +248,17 @@ struct TypePack : std::type_identity<TypePack<Ts...>> {
     template <class T>
     static constexpr bool contains = (std::is_same_v<T, Ts> || ...);
 
+    template <class...Ts2>
+    static constexpr bool contains_all = (contains<Ts2> && ...);
+
+    template <class...Ts2>
+    static constexpr bool contains_any = (contains<Ts2> || ...);
+
     template <class T>
     static constexpr size_t index_of = details::TypePackIndexOf<T, TypePack>::value;
+
+    template <template <class...> class Target>
+    using apply_to_t = Target<Ts...>;
 };
 
 template <IsSpecializationOf<TypePack>...Packs>
