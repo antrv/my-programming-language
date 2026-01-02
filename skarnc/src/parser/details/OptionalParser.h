@@ -24,14 +24,14 @@ public:
 
     bool parse(ParserContext<InputType>& ctx, ValueType& value) const {
         value.emplace();
-        ctx.push_state();
+        ctx.save_state();
         ctx.report_messages(false);
         if (!parser_.parse(ctx, *value)) {
             value.reset();
-            ctx.restore_state();
+            ctx.rollback_state();
         }
         else {
-            ctx.pop_state();
+            ctx.commit_state();
         }
 
         return true;

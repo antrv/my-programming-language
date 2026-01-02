@@ -32,7 +32,7 @@ TEST(IntParserTests, EmptyInput)
     ASSERT_EQ(messages.size(), 1);
     EXPECT_EQ(messages[0].level, ParserMsgLevel::Error);
     EXPECT_EQ(messages[0].code, ParserMsgCode::C0001);
-    EXPECT_EQ(messages[0].message, "Unexpected end of input, expected an integer");
+    EXPECT_EQ(messages[0].expected, "an integer");
     EXPECT_EQ(messages[0].position, 0);
     EXPECT_EQ(messages[0].line, 1U);
     EXPECT_EQ(messages[0].column, 1U);
@@ -52,7 +52,7 @@ TEST(IntParserTests, InvalidInput)
     ASSERT_EQ(messages.size(), 1);
     EXPECT_EQ(messages[0].level, ParserMsgLevel::Error);
     EXPECT_EQ(messages[0].code, ParserMsgCode::C0002);
-    EXPECT_EQ(messages[0].message, "Unexpected input, expected an integer");
+    EXPECT_EQ(messages[0].expected, "an integer");
     EXPECT_EQ(messages[0].position, 0U);
     EXPECT_EQ(messages[0].line, 1U);
     EXPECT_EQ(messages[0].column, 1U);
@@ -72,7 +72,7 @@ TEST(IntParserTests, Overflow)
     ASSERT_EQ(messages.size(), 1);
     EXPECT_EQ(messages[0].level, ParserMsgLevel::Error);
     EXPECT_EQ(messages[0].code, ParserMsgCode::C0003);
-    EXPECT_EQ(messages[0].message, "An integer is out of range");
+    EXPECT_EQ(messages[0].expected, "");
     EXPECT_EQ(messages[0].position, 0U);
     EXPECT_EQ(messages[0].line, 1U);
     EXPECT_EQ(messages[0].column, 1U);

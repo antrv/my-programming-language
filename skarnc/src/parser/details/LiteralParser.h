@@ -20,13 +20,13 @@ public:
     bool parse(ParserContext<char>& ctx, std::string_view& value) const {
         const std::span<const char> input = ctx.input();
         if (input.empty()) {
-            ctx.addMsg(ParserMsgLevel::Error, ParserMsgCode::C0001, "Unexpected end of input, expected '{}'", literal_);
+            ctx.add_message(ParserMsgLevel::Error, ParserMsgCode::C0001, "'{}'", literal_);
             return false;
         }
 
         const std::string_view str {input.data(), input.size()};
         if (!str.starts_with(literal_)) {
-            ctx.addMsg(ParserMsgLevel::Error, ParserMsgCode::C0002, "Unexpected input '{}', expected '{}'", str, literal_);
+            ctx.add_message(ParserMsgLevel::Error, ParserMsgCode::C0002, "'{}'", literal_);
             return false;
         }
 

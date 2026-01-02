@@ -24,7 +24,7 @@ enum class ParserMsgCode {
 struct ParserMessage {
     ParserMsgLevel level;
     ParserMsgCode code;
-    std::string message;
+    std::string expected;
     size_t position;
     uint32_t line;
     uint32_t column;

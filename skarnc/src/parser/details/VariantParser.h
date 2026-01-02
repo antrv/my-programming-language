@@ -19,9 +19,27 @@ private:
 
     template <size_t Index>
     bool parseIndexImpl(ParserContext<InputType>& ctx, ValueType& value) const {
+        constexpr size_t lastIndex = sizeof...(Parsers) - 1;
+        if constexpr (Index != lastIndex) {
+            ctx.save_state();
+            ctx.report_messages(false);
+        }
+
         auto& val = value.template emplace<Index>();
         const auto& parser = std::get<Index>(parsers_);
-        return parser.parse(ctx, val);
+        if (!parser.parse(ctx, val)) {
+            if constexpr (Index != lastIndex) {
+                ctx.rollback_state();
+            }
+
+            return false;
+        }
+
+        if constexpr (Index != lastIndex) {
+            ctx.commit_state();
+        }
+
+        return true;
     }
 
     template <size_t...Indices>

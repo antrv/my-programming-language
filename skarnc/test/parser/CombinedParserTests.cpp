@@ -35,7 +35,7 @@ TEST(CombinedParserTests, EmptyInput)
     ASSERT_EQ(messages.size(), 1);
     EXPECT_EQ(messages[0].level, ParserMsgLevel::Error);
     EXPECT_EQ(messages[0].code, ParserMsgCode::C0001);
-    EXPECT_EQ(messages[0].message, "Unexpected end of input, expected 'template'"sv);
+    EXPECT_EQ(messages[0].expected, "'template'"sv);
     EXPECT_EQ(messages[0].position, 0);
     EXPECT_EQ(messages[0].line, 1U);
     EXPECT_EQ(messages[0].column, 1U);
@@ -58,7 +58,7 @@ TEST(CombinedParserTests, PartiallyValidInput)
     ASSERT_EQ(messages.size(), 1);
     EXPECT_EQ(messages[0].level, ParserMsgLevel::Error);
     EXPECT_EQ(messages[0].code, ParserMsgCode::C0002);
-    EXPECT_EQ(messages[0].message, "Unexpected input 'struct', expected 'class'"sv);
+    EXPECT_EQ(messages[0].expected, "'class'"sv);
     EXPECT_EQ(messages[0].position, 9);
     EXPECT_EQ(messages[0].line, 1U);
     EXPECT_EQ(messages[0].column, 10U);
@@ -79,7 +79,7 @@ TEST(CombinedParserTests, InvalidInput)
     ASSERT_EQ(messages.size(), 1);
     EXPECT_EQ(messages[0].level, ParserMsgLevel::Error);
     EXPECT_EQ(messages[0].code, ParserMsgCode::C0002);
-    EXPECT_EQ(messages[0].message, "Unexpected input 'xxx bbb', expected 'template'"sv);
+    EXPECT_EQ(messages[0].expected, "'template'"sv);
     EXPECT_EQ(messages[0].position, 0);
     EXPECT_EQ(messages[0].line, 1U);
     EXPECT_EQ(messages[0].column, 1U);

@@ -2,6 +2,7 @@
 
 #include <expected>
 #include "details/CombinedParser.h"
+#include "details/ExpectedParser.h"
 #include "details/OptionalParser.h"
 #include "details/VariantParser.h"
 
@@ -51,6 +52,10 @@ public:
     constexpr auto operator ||(const ParserInterface<NextParser>& next) const noexcept {
         using ResultParser = decltype(details::makeVariantParser(parser_, next.parser()));
         return ParserInterface<ResultParser> {details::makeVariantParser(parser_, next.parser())};
+    }
+
+    constexpr auto expected(const std::string_view what) const noexcept {
+        return ParserInterface<details::ExpectedParser<Parser>> {parser_, what};
     }
 
     constexpr auto optional() const noexcept {

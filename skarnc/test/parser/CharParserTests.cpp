@@ -30,7 +30,7 @@ TEST(CharParserTests, EmptyInput) {
     ASSERT_EQ(messages.size(), 1);
     EXPECT_EQ(messages[0].level, ParserMsgLevel::Error);
     EXPECT_EQ(messages[0].code, ParserMsgCode::C0001);
-    EXPECT_EQ(messages[0].message, "Unexpected end of input, expected 'a'"sv);
+    EXPECT_EQ(messages[0].expected, "'a'"sv);
     EXPECT_EQ(messages[0].position, 0);
     EXPECT_EQ(messages[0].line, 1U);
     EXPECT_EQ(messages[0].column, 1U);
@@ -49,7 +49,7 @@ TEST(CharParserTests, InvalidInput) {
     ASSERT_EQ(messages.size(), 1);
     EXPECT_EQ(messages[0].level, ParserMsgLevel::Error);
     EXPECT_EQ(messages[0].code, ParserMsgCode::C0002);
-    EXPECT_EQ(messages[0].message, "Unexpected input 'b', expected 'a'"sv);
+    EXPECT_EQ(messages[0].expected, "'a'"sv);
     EXPECT_EQ(messages[0].position, 0);
     EXPECT_EQ(messages[0].line, 1U);
     EXPECT_EQ(messages[0].column, 1U);

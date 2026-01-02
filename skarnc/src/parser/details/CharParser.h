@@ -19,12 +19,12 @@ public:
     bool parse(ParserContext<char>& ctx, char& value) const {
         const std::span<const char> input = ctx.input();
         if (input.empty()) {
-            ctx.addMsg(ParserMsgLevel::Error, ParserMsgCode::C0001, "Unexpected end of input, expected '{}'", char_);
+            ctx.add_message(ParserMsgLevel::Error, ParserMsgCode::C0001, "'{}'", char_);
             return false;
         }
 
         if (const char chr = input[0]; chr != char_) {
-            ctx.addMsg(ParserMsgLevel::Error, ParserMsgCode::C0002, "Unexpected input '{}', expected '{}'", chr, char_);
+            ctx.add_message(ParserMsgLevel::Error, ParserMsgCode::C0002, "'{}'", char_);
             return false;
         }
 

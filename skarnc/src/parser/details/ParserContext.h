@@ -12,13 +12,13 @@ namespace skarn::parser::details {
 template <class Input>
 class ParserContext final {
     std::span<const Input> input_;
-    ParseMessages messages_;
 
     struct State {
-        size_t position;
-        uint32_t line;
-        uint32_t column;
-        bool reportMessages;
+        ParseMessages messages;
+        size_t position {};
+        uint32_t line {1};
+        uint32_t column {1};
+        bool report_messages {true};
     };
 
     std::stack<State> states_;
@@ -26,8 +26,7 @@ class ParserContext final {
 
 public:
     explicit ParserContext(const std::span<const Input> input) noexcept
-        : input_ {input}
-        , current_ {0, 1, 1, true} {
+        : input_ {input} {
     }
 
     [[nodiscard]] std::span<const Input> input() const {
@@ -40,43 +39,55 @@ public:
         current_.column += static_cast<uint32_t>(length);
     }
 
+    [[nodiscard]] ParseMessages& messages() & noexcept {
+        return current_.messages;
+    }
+
     [[nodiscard]] const ParseMessages& messages() const & noexcept {
-        return messages_;
+        return current_.messages;
     }
 
     [[nodiscard]] ParseMessages messages() && noexcept {
-        return std::move(messages_);
+        return std::move(current_.messages);
     }
 
-    void report_messages(const bool value = true) noexcept {
-        current_.reportMessages = value;
+    [[nodiscard]] bool report_messages() const noexcept {
+        return current_.report_messages;
     }
 
-    void push_state() {
-        states_.push(current_);
-    }
-
-    void restore_state() {
-        current_ = states_.top();
-        states_.pop();
-    }
-
-    void pop_state() {
-        states_.pop();
+    void report_messages(const bool value) noexcept {
+        current_.report_messages = value;
     }
 
     template <class...Args>
-    void addMsg(const ParserMsgLevel level, const ParserMsgCode code, std::format_string<Args...> fmt, Args&&...args) {
-        if (current_.reportMessages) {
-            messages_.push_back(ParserMessage {
+    void add_message(const ParserMsgLevel level, const ParserMsgCode code, std::format_string<Args...> fmt, Args&&...args) {
+        if (current_.report_messages) {
+            current_.messages.push_back(ParserMessage {
                 .level = level,
                 .code = code,
-                .message = std::format(fmt, std::forward<Args>(args)...),
+                .expected = std::format(fmt, std::forward<Args>(args)...),
                 .position = current_.position,
                 .line = current_.line,
                 .column = current_.column,
             });
         }
+    }
+
+    void save_state() {
+        states_.push(std::move(current_));
+    }
+
+    void rollback_state() {
+        State& state = states_.top();
+        current_ = std::move(state);
+        states_.pop();
+    }
+
+    void commit_state() {
+        State& state = states_.top();
+        current_.messages.swap(state.messages);
+        current_.messages.append_range(std::move(state.messages));
+        states_.pop();
     }
 };
 

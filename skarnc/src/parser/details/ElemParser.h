@@ -20,13 +20,13 @@ public:
     bool parse(ParserContext<Elem>& ctx, Elem& value) const {
         const std::span<const Elem> input = ctx.input();
         if (input.empty()) {
-            ctx.addMsg(ParserMsgLevel::Error, ParserMsgCode::C0001, "Unexpected end of input, expected '{}'", elem_);
+            ctx.add_message(ParserMsgLevel::Error, ParserMsgCode::C0001, "'{}'", elem_);
             return false;
         }
 
         const Elem& elem = input[0];
         if (!Eq {}(elem, elem_)) {
-            ctx.addMsg(ParserMsgLevel::Error, ParserMsgCode::C0002, "Unexpected input '{}', expected '{}'", elem, elem_);
+            ctx.add_message(ParserMsgLevel::Error, ParserMsgCode::C0002, "'{}'", elem_);
             return false;
         }
 
