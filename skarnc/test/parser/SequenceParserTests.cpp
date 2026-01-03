@@ -1,28 +1,40 @@
 #include <gtest/gtest.h>
 #include "parser/details/CharParser.h"
+#include "parser/details/SequenceParser.h"
 
 using namespace std::string_view_literals;
 using namespace skarn::parser;
 using namespace skarn::parser::details;
 
-TEST(CharParserTests, Success) {
-    constexpr CharParser parser {'a'};
+TEST(SequenceParserTests, Success) {
+    constexpr SequenceParser parser {CharParser {'a'}};
 
-    constexpr std::string_view input {"a"sv};
+    constexpr std::string_view input {"aaaaabbb"sv};
     ParserContext<char> ctx {input};
-    char value {};
+    std::vector<char> value;
     ASSERT_TRUE(parser.parse(ctx, value));
-    EXPECT_EQ(value, 'a');
+    EXPECT_EQ(std::string_view {value}, "aaaaa"sv);
     EXPECT_TRUE(ctx.messages().empty());
-    EXPECT_TRUE(ctx.input().empty());
+    EXPECT_EQ(std::string_view {ctx.input()}, "bbb"sv);
 }
 
-TEST(CharParserTests, EmptyInput) {
-    constexpr CharParser parser {'a'};
+TEST(SequenceParserTests, EmptyInput) {
+    constexpr SequenceParser parser {CharParser {'a'}};
 
     constexpr std::string_view input;
     ParserContext<char> ctx {input};
-    char value {};
+    std::vector<char> value;
+    ASSERT_TRUE(parser.parse(ctx, value));
+    EXPECT_TRUE(ctx.messages().empty());
+    EXPECT_EQ(std::string_view {ctx.input()}, input);
+}
+
+TEST(SequenceParserTests, AtLeastOnceEmptyInput) {
+    constexpr SequenceParser<CharParser, 1> parser {CharParser {'a'}};
+
+    constexpr std::string_view input;
+    ParserContext<char> ctx {input};
+    std::vector<char> value;
     ASSERT_FALSE(parser.parse(ctx, value));
     EXPECT_EQ(std::string_view {ctx.input()}, input);
 
@@ -36,12 +48,23 @@ TEST(CharParserTests, EmptyInput) {
     EXPECT_EQ(messages[0].column, 1U);
 }
 
-TEST(CharParserTests, InvalidInput) {
-    constexpr CharParser parser {'a'};
+TEST(SequenceParserTests, InvalidInput) {
+    constexpr SequenceParser parser {CharParser {'a'}};
 
     constexpr std::string_view input {"b"sv};
     ParserContext<char> ctx {input};
-    char value {};
+    std::vector<char> value;
+    ASSERT_TRUE(parser.parse(ctx, value));
+    EXPECT_TRUE(ctx.messages().empty());
+    EXPECT_EQ(std::string_view {ctx.input()}, input);
+}
+
+TEST(SequenceParserTests, AtLeastOnceInvalidInput) {
+    constexpr SequenceParser<CharParser, 1> parser {CharParser {'a'}};
+
+    constexpr std::string_view input {"b"sv};
+    ParserContext<char> ctx {input};
+    std::vector<char> value;
     ASSERT_FALSE(parser.parse(ctx, value));
     EXPECT_EQ(std::string_view {ctx.input()}, input);
 

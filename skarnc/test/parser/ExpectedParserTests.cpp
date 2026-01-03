@@ -34,7 +34,7 @@ TEST(ExpectedParserTests, EmptyInput)
     EXPECT_EQ(messages[0].level, ParserMsgLevel::Error);
     EXPECT_EQ(messages[0].code, ParserMsgCode::C0001);
     EXPECT_EQ(messages[0].expected, "letter a"sv);
-    EXPECT_EQ(messages[0].position, 0);
+    EXPECT_EQ(messages[0].offset, 0);
     EXPECT_EQ(messages[0].line, 1U);
     EXPECT_EQ(messages[0].column, 1U);
 }
@@ -54,7 +54,7 @@ TEST(ExpectedParserTests, InvalidInput)
     EXPECT_EQ(messages[0].level, ParserMsgLevel::Error);
     EXPECT_EQ(messages[0].code, ParserMsgCode::C0002);
     EXPECT_EQ(messages[0].expected, "letter a"sv);
-    EXPECT_EQ(messages[0].position, 0);
+    EXPECT_EQ(messages[0].offset, 0);
     EXPECT_EQ(messages[0].line, 1U);
     EXPECT_EQ(messages[0].column, 1U);
 }

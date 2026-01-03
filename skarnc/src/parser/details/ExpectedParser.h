@@ -15,7 +15,7 @@ public:
     using InputType = Parser::InputType;
     using ValueType = Parser::ValueType;
 
-    explicit constexpr ExpectedParser(Parser parser, std::string_view what) noexcept
+    explicit constexpr ExpectedParser(Parser parser, const std::string_view what) noexcept
         : parser_ {std::move(parser)}
         , what_{what} {
     }

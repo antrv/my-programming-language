@@ -9,20 +9,18 @@
 
 namespace skarn::parser::details {
 
+struct ParserPosition {
+    size_t offset;
+    uint32_t line;
+    uint32_t column;
+};
+
 template <class Input>
 class ParserContext final {
+    ParseMessages messages_;
     std::span<const Input> input_;
-
-    struct State {
-        ParseMessages messages;
-        size_t position {};
-        uint32_t line {1};
-        uint32_t column {1};
-        bool report_messages {true};
-    };
-
-    std::stack<State> states_;
-    State current_;
+    ParserPosition position_ {0, 1, 1};
+    bool report_messages_ {true};
 
 public:
     explicit ParserContext(const std::span<const Input> input) noexcept
@@ -30,64 +28,55 @@ public:
     }
 
     [[nodiscard]] std::span<const Input> input() const {
-        return input_.subspan(current_.position);
+        return input_.subspan(position_.offset);
+    }
+
+    [[nodiscard]] ParserPosition position() const noexcept {
+        return position_;
+    }
+
+    void position(const ParserPosition position) noexcept {
+        position_ = position;
     }
 
     void consume(const size_t length) noexcept {
         // TODO: calculate line and column
-        current_.position += length;
-        current_.column += static_cast<uint32_t>(length);
+        position_.offset += length;
+        position_.column += static_cast<uint32_t>(length);
     }
 
     [[nodiscard]] ParseMessages& messages() & noexcept {
-        return current_.messages;
+        return messages_;
     }
 
     [[nodiscard]] const ParseMessages& messages() const & noexcept {
-        return current_.messages;
+        return messages_;
     }
 
     [[nodiscard]] ParseMessages messages() && noexcept {
-        return std::move(current_.messages);
+        return std::move(messages_);
     }
 
     [[nodiscard]] bool report_messages() const noexcept {
-        return current_.report_messages;
+        return report_messages_;
     }
 
     void report_messages(const bool value) noexcept {
-        current_.report_messages = value;
+        report_messages_ = value;
     }
 
     template <class...Args>
     void add_message(const ParserMsgLevel level, const ParserMsgCode code, std::format_string<Args...> fmt, Args&&...args) {
-        if (current_.report_messages) {
-            current_.messages.push_back(ParserMessage {
+        if (report_messages_) {
+            messages_.push_back(ParserMessage {
                 .level = level,
                 .code = code,
                 .expected = std::format(fmt, std::forward<Args>(args)...),
-                .position = current_.position,
-                .line = current_.line,
-                .column = current_.column,
+                .offset = position_.offset,
+                .line = position_.line,
+                .column = position_.column,
             });
         }
-    }
-
-    void save_state() {
-        states_.push(std::move(current_));
-    }
-
-    void rollback_state() {
-        State& state = states_.top();
-        current_ = std::move(state);
-        states_.pop();
-    }
-
-    void commit_state() {
-        State& state = states_.top();
-        current_.messages.swap(state.messages);
-        current_.messages.append_range(std::move(state.messages));
-        states_.pop();
     }
 };
 

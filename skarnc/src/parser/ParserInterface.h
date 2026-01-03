@@ -55,11 +55,21 @@ public:
     }
 
     constexpr auto expected(const std::string_view what) const noexcept {
-        return ParserInterface<details::ExpectedParser<Parser>> {parser_, what};
+        if constexpr (SpecializationOf<Parser, details::ExpectedParser>) {
+            return ParserInterface<details::ExpectedParser<Parser>> {parser_.parser(), what};
+        }
+        else {
+            return ParserInterface<details::ExpectedParser<Parser>> {parser_, what};
+        }
     }
 
     constexpr auto optional() const noexcept {
-        return ParserInterface<details::OptionalParser<Parser>> {};
+        if constexpr (SpecializationOf<Parser, details::OptionalParser>) {
+            return *this;
+        }
+        else {
+            return ParserInterface<details::OptionalParser<Parser>> {};
+        }
     }
 };
 

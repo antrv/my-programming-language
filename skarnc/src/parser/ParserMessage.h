@@ -25,7 +25,7 @@ struct ParserMessage {
     ParserMsgLevel level;
     ParserMsgCode code;
     std::string expected;
-    size_t position;
+    size_t offset;
     uint32_t line;
     uint32_t column;
 };

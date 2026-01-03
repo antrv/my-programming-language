@@ -17,26 +17,22 @@ public:
 private:
     std::tuple<Parsers...> parsers_;
 
-    template <size_t Index>
-    bool parseIndexImpl(ParserContext<InputType>& ctx, ValueType& value) const {
+    bool parseLastVariant(ParserContext<InputType>& ctx, ValueType& value) const {
         constexpr size_t lastIndex = sizeof...(Parsers) - 1;
-        if constexpr (Index != lastIndex) {
-            ctx.save_state();
-            ctx.report_messages(false);
-        }
+        auto& val = value.template emplace<lastIndex>();
+        const auto& parser = std::get<lastIndex>(parsers_);
+        return parser.parse(ctx, val);
+    }
+
+    template <size_t Index>
+    bool parseVariant(ParserContext<InputType>& ctx, ValueType& value) const {
+        const ParserPosition position = ctx.position();
 
         auto& val = value.template emplace<Index>();
-        const auto& parser = std::get<Index>(parsers_);
-        if (!parser.parse(ctx, val)) {
-            if constexpr (Index != lastIndex) {
-                ctx.rollback_state();
-            }
-
+        if (const auto& parser = std::get<Index>(parsers_);
+            !parser.parse(ctx, val)) {
+            ctx.position(position);
             return false;
-        }
-
-        if constexpr (Index != lastIndex) {
-            ctx.commit_state();
         }
 
         return true;
@@ -44,7 +40,13 @@ private:
 
     template <size_t...Indices>
     bool parseImpl(ParserContext<InputType>& ctx, ValueType& value, std::index_sequence<Indices...>) const {
-        return (parseIndexImpl<Indices>(ctx, value) || ...);
+        const bool report_flag = ctx.report_messages();
+        ctx.report_messages(false);
+
+        const bool result = (parseVariant<Indices>(ctx, value) || ...);
+        ctx.report_messages(report_flag);
+
+        return result || parseLastVariant(ctx, value);
     }
 
 public:
@@ -53,7 +55,7 @@ public:
     }
 
     bool parse(ParserContext<InputType>& ctx, ValueType& value) const {
-        return parseImpl(ctx, value, std::make_index_sequence<sizeof...(Parsers)>());
+        return parseImpl(ctx, value, std::make_index_sequence<sizeof...(Parsers) - 1>());
     }
 };
 

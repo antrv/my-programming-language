@@ -24,16 +24,15 @@ public:
 
     bool parse(ParserContext<InputType>& ctx, ValueType& value) const {
         value.emplace();
-        ctx.save_state();
+        const bool report_flag = ctx.report_messages();
         ctx.report_messages(false);
+        const ParserPosition position = ctx.position();
         if (!parser_.parse(ctx, *value)) {
             value.reset();
-            ctx.rollback_state();
-        }
-        else {
-            ctx.commit_state();
+            ctx.position(position); // restore position
         }
 
+        ctx.report_messages(report_flag); // restore report flag
         return true;
     }
 };
