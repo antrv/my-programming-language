@@ -11,11 +11,14 @@ TEST(ParserTests, Identifier) {
         }, "identifier"sv) >>
         *Parse::char_([](const char c) constexpr static noexcept {
             return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_';
-        }, "identifier"sv);
+        }, "identifier"sv) >>
+        [](std::string& result, const std::tuple<char, std::string>& value) static {
+            result = std::get<0>(value) + std::get<1>(value);
+        };
 
     const auto result = identParser.parse("variableName123_xxx");
     ASSERT_TRUE(result);
-    EXPECT_EQ(result.value(), std::make_tuple('v', "ariableName123_xxx"sv));
+    EXPECT_EQ(result.value(), "variableName123_xxx"sv);
 }
 
 TEST(ParserTests, IdentifierInvalidInput) {
@@ -24,7 +27,10 @@ TEST(ParserTests, IdentifierInvalidInput) {
         }, "identifier"sv) >>
         *Parse::char_([](const char c) constexpr static noexcept {
             return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_';
-        }, "identifier"sv);
+        }, "identifier"sv) >>
+        [](std::string& result, const std::tuple<char, std::string>& value) static {
+            result = std::get<0>(value) + std::get<1>(value);
+        };
 
     const auto result = identParser.parse("123variable");
     ASSERT_FALSE(result);

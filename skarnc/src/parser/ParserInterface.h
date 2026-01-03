@@ -5,6 +5,7 @@
 #include "details/ExpectedParser.h"
 #include "details/OptionalParser.h"
 #include "details/SequenceParser.h"
+#include "details/TransformParser.h"
 #include "details/VariantParser.h"
 
 namespace skarn::parser {
@@ -47,6 +48,12 @@ public:
     constexpr auto operator >>(const ParserInterface<NextParser>& next) const noexcept {
         using ResultParser = decltype(details::makeCombinedParser(parser_, next.parser()));
         return ParserInterface<ResultParser> {details::makeCombinedParser(parser_, next.parser())};
+    }
+
+    template <details::TransformInvocable<typename Parser::ValueType> Invocable>
+    constexpr auto operator >>(Invocable invocable) const noexcept {
+        return ParserInterface<details::TransformParser<Parser, Invocable>> {
+            details::TransformParser<Parser, Invocable> {parser_, std::move(invocable)}};
     }
 
     template <details::Parser NextParser>
