@@ -6,8 +6,11 @@
 namespace skarn::parser::details {
 
 template <Parser Parser, size_t MinCount = 0, size_t MaxCount = std::numeric_limits<size_t>::max()>
-requires (MinCount < MaxCount)
-class SequenceParser final {
+class SequenceParser;
+
+template <Parser Parser, size_t MinCount, size_t MaxCount>
+requires (MinCount < MaxCount && !std::is_same_v<typename Parser::ValueType, char>)
+class SequenceParser<Parser, MinCount, MaxCount> final {
     Parser parser_;
 
 public:
@@ -26,7 +29,7 @@ public:
                     !parser_.parse(ctx, val)) {
                     value.pop_back();
                     return false;
-                    }
+                }
             }
         }
 
@@ -47,5 +50,53 @@ public:
         return true;
     }
 };
+
+template <Parser Parser, size_t MinCount, size_t MaxCount>
+requires (MinCount < MaxCount && std::is_same_v<typename Parser::ValueType, char>)
+class SequenceParser<Parser, MinCount, MaxCount> final {
+    Parser parser_;
+
+public:
+    using ParserType = SequenceParser;
+    using InputType = Parser::InputType;
+    using ValueType = std::string;
+
+    explicit constexpr SequenceParser(Parser parser) noexcept
+        : parser_ {std::move(parser)} {
+    }
+
+    bool parse(ParserContext<InputType>& ctx, ValueType& value) const {
+        if constexpr (MinCount != 0) {
+            for (size_t i = MinCount; i != 0; --i) {
+                char val {};
+                if (!parser_.parse(ctx, val)) {
+                    return false;
+                }
+
+                value += val;
+            }
+        }
+
+        const bool report_flag = ctx.report_messages();
+        ctx.report_messages(false);
+
+        for (size_t i = MaxCount - MinCount; i != 0; --i) {
+            const ParserPosition position = ctx.position();
+            char val {};
+            if (!parser_.parse(ctx, val)) {
+                ctx.position(position);
+                break;
+            }
+
+            value += val;
+        }
+
+        ctx.report_messages(report_flag);
+        return true;
+    }
+};
+
+template <Parser Parser>
+SequenceParser(Parser parser) -> SequenceParser<std::decay_t<Parser>>;
 
 } // namespace skarn::parser::details

@@ -4,6 +4,7 @@
 #include "details/CombinedParser.h"
 #include "details/ExpectedParser.h"
 #include "details/OptionalParser.h"
+#include "details/SequenceParser.h"
 #include "details/VariantParser.h"
 
 namespace skarn::parser {
@@ -54,22 +55,20 @@ public:
         return ParserInterface<ResultParser> {details::makeVariantParser(parser_, next.parser())};
     }
 
+    constexpr auto operator *() const noexcept {
+        return ParserInterface<details::SequenceParser<Parser>> {details::SequenceParser<Parser> {parser_}};
+    }
+
+    constexpr auto operator +() const noexcept {
+        return ParserInterface<details::SequenceParser<Parser, 1>> {details::SequenceParser<Parser, 1> {parser_}};
+    }
+
     constexpr auto expected(const std::string_view what) const noexcept {
-        if constexpr (SpecializationOf<Parser, details::ExpectedParser>) {
-            return ParserInterface<details::ExpectedParser<Parser>> {parser_.parser(), what};
-        }
-        else {
-            return ParserInterface<details::ExpectedParser<Parser>> {parser_, what};
-        }
+        return ParserInterface<details::ExpectedParser<Parser>> {parser_.parser(), what};
     }
 
     constexpr auto optional() const noexcept {
-        if constexpr (SpecializationOf<Parser, details::OptionalParser>) {
-            return *this;
-        }
-        else {
-            return ParserInterface<details::OptionalParser<Parser>> {};
-        }
+        return ParserInterface<details::OptionalParser<Parser>> {};
     }
 };
 
