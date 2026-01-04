@@ -89,8 +89,45 @@ TEST(CombinedParserTests, IgnoreAllValues)
         IgnoreParser {CharParser {' '}},
         IgnoreParser {LiteralParser {"class"sv}}};
 
+    static_assert(std::is_same_v<decltype(parser)::ValueType, NoValueType>);
+
     constexpr std::string_view input {"template class 1234"sv};
     ParserContext<char> ctx {input};
     ASSERT_TRUE(parser.parse(ctx));
+    EXPECT_EQ(std::string_view {ctx.input()}, " 1234"sv);
+}
+
+TEST(CombinedParserTests, IgnoreValuesExceptOne)
+{
+    constexpr CombinedParser parser {
+        IgnoreParser {LiteralParser {"template"sv}},
+        IgnoreParser {CharParser {' '}},
+        LiteralParser {"class"sv}};
+
+    static_assert(std::is_same_v<decltype(parser)::ValueType, std::string_view>);
+
+    constexpr std::string_view input {"template class 1234"sv};
+    ParserContext<char> ctx {input};
+    std::string_view value;
+    ASSERT_TRUE(parser.parse(ctx, value));
+    EXPECT_EQ(value, "class"sv);
+    EXPECT_EQ(std::string_view {ctx.input()}, " 1234"sv);
+}
+
+TEST(CombinedParserTests, IgnoreSomeValues)
+{
+    constexpr CombinedParser parser {
+        LiteralParser {"template"sv},
+        IgnoreParser {CharParser {' '}},
+        LiteralParser {"class"sv}};
+
+    static_assert(std::is_same_v<decltype(parser)::ValueType, std::tuple<std::string_view, std::string_view>>);
+
+    constexpr std::string_view input {"template class 1234"sv};
+    ParserContext<char> ctx {input};
+    std::tuple<std::string_view, std::string_view> value;
+    ASSERT_TRUE(parser.parse(ctx, value));
+    EXPECT_EQ(std::get<0>(value), "template"sv);
+    EXPECT_EQ(std::get<1>(value), "class"sv);
     EXPECT_EQ(std::string_view {ctx.input()}, " 1234"sv);
 }

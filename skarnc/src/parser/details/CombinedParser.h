@@ -27,6 +27,48 @@ public:
         typename ValueTypePack::template apply_to_t<std::tuple>,
         typename ValueTypePack::template first_or_default_t<NoValueType>>;
 
+private:
+    template <size_t Index>
+    requires (ValueTypePack::size == 1)
+    bool parseSingleValueItem(ParserContext<InputType>& ctx, ValueType& value) const {
+        using SingleValueType = ValueTypePack::template element_t<0>;
+        constexpr size_t indexOfSingleValue = TypePack<typename Parsers::ValueType...>::template index_of<SingleValueType>;
+        const auto& parser = std::get<Index>(parsers_);
+        if constexpr (Index == indexOfSingleValue) {
+            return parser.parse(ctx, value);
+        }
+        else {
+            return parser.parse(ctx);
+        }
+    }
+
+    template <size_t...Indices>
+    requires (ValueTypePack::size == 1)
+    bool parseSingleValue(ParserContext<InputType>& ctx, ValueType& value, std::index_sequence<Indices...>) const {
+        return (parseSingleValueItem<Indices>(ctx, value) && ...);
+    }
+
+    template <size_t Index>
+    requires (ValueTypePack::size > 1)
+    bool parseTupleItem(ParserContext<InputType>& ctx, ValueType& value) const {
+        const auto& parser = std::get<Index>(parsers_);
+        using ItemParserType = std::decay_t<decltype(parser)>;
+        if constexpr (std::is_same_v<typename ItemParserType::ValueType, NoValueType>) {
+            return parser.parse(ctx);
+        }
+        else {
+            return parser.parse(ctx, std::get<value_index<Index>>(value));
+        }
+    }
+
+    template <size_t...Indices>
+    requires (ValueTypePack::size > 1)
+    bool parseTuple(ParserContext<InputType>& ctx, ValueType& value, std::index_sequence<Indices...>) const {
+        return (parseTupleItem<Indices>(ctx, value) && ...);
+    }
+
+public:
+
     explicit constexpr CombinedParser(Parsers... parsers) noexcept
         : parsers_ {std::move(parsers)...} {
     }
@@ -38,9 +80,7 @@ public:
     // for tuple
     bool parse(ParserContext<InputType>& ctx, ValueType& value) const
     requires (ValueTypePack::size > 1) {
-        return [&ctx, &value, &parsers = parsers_]<size_t...Indices>(const std::index_sequence<Indices...>) {
-            return ((std::get<Indices>(parsers).parse(ctx, std::get<value_index<Indices>>(value))) && ...);
-        }(std::make_index_sequence<sizeof...(Parsers)>());
+        return parseTuple(ctx, value, std::make_index_sequence<sizeof...(Parsers)>());
     }
 
     bool parse(ParserContext<InputType>& ctx) const {
@@ -58,11 +98,7 @@ public:
     // for a single value
     bool parse(ParserContext<InputType>& ctx, ValueType& value) const
     requires (ValueTypePack::size == 1) {
-        return [&ctx, &value, &parsers = parsers_]<size_t...Indices>(const std::index_sequence<Indices...>) {
-            using SingleValueType = ValueTypePack::template element_t<0>;
-            constexpr size_t indexOfSingleValue = TypePack<typename Parsers::ValueType...>::template index_of<SingleValueType>;
-            return ((indexOfSingleValue == Indices ? std::get<Indices>(parsers).parse(ctx, value) : std::get<Indices>(parsers).parse(ctx)) && ...);
-        }(std::make_index_sequence<sizeof...(Parsers)>());
+        return parseSingleValue(ctx, value, std::make_index_sequence<sizeof...(Parsers)>());
     }
 };
 
