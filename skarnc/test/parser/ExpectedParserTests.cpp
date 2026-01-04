@@ -6,6 +6,9 @@ using namespace std::string_view_literals;
 using namespace skarn::parser;
 using namespace skarn::parser::details;
 
+static_assert(std::is_same_v<decltype(makeExpectedParser(CharParser {'a'}, "a"sv)), ExpectedParser<CharParser>>);
+static_assert(std::is_same_v<decltype(makeExpectedParser(ExpectedParser {CharParser {'a'}, "a"sv}, "b"sv)), ExpectedParser<CharParser>>);
+
 TEST(ExpectedParserTests, Success)
 {
     constexpr auto parser = ExpectedParser {CharParser {'a'}, "letter a"sv};

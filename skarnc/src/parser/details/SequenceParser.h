@@ -5,54 +5,25 @@
 
 namespace skarn::parser::details {
 
-template <Parser Parser, size_t MinCount = 0, size_t MaxCount = std::numeric_limits<size_t>::max()>
-class SequenceParser;
-
-template <Parser Parser, size_t MinCount, size_t MaxCount>
-requires (MinCount < MaxCount && !OneOf<typename Parser::ValueType, char, NoValueType>)
-class SequenceParser<Parser, MinCount, MaxCount> final {
+template <Parser Parser, size_t RequiredCount = 0, size_t OptionalMaxCount = std::numeric_limits<size_t>::max()>
+class SequenceParser final {
     Parser parser_;
 
 public:
     using ParserType = SequenceParser;
     using InputType = Parser::InputType;
-    using ValueType = std::vector<typename Parser::ValueType>;
+    using ValueType =
+        std::conditional_t<std::is_same_v<typename Parser::ValueType, NoValueType>, NoValueType,
+            std::conditional_t<std::is_same_v<typename Parser::ValueType, char>, std::string,
+            std::vector<typename Parser::ValueType>>>;
 
     explicit constexpr SequenceParser(Parser parser) noexcept
         : parser_ {std::move(parser)} {
     }
 
-    bool parse(ParserContext<InputType>& ctx, ValueType& value) const {
-        if constexpr (MinCount != 0) {
-            for (size_t i = MinCount; i != 0; --i) {
-                if (typename Parser::ValueType& val = value.emplace_back();
-                    !parser_.parse(ctx, val)) {
-                    value.pop_back();
-                    return false;
-                }
-            }
-        }
-
-        const bool report_flag = ctx.report_messages();
-        ctx.report_messages(false);
-
-        for (size_t i = MaxCount - MinCount; i != 0; --i) {
-            const ParserPosition position = ctx.position();
-            if (typename Parser::ValueType& val = value.emplace_back();
-                !parser_.parse(ctx, val)) {
-                value.pop_back();
-                ctx.position(position);
-                break;
-            }
-        }
-
-        ctx.report_messages(report_flag);
-        return true;
-    }
-
     bool parse(ParserContext<InputType>& ctx) const {
-        if constexpr (MinCount != 0) {
-            for (size_t i = MinCount; i != 0; --i) {
+        if constexpr (RequiredCount != 0) {
+            for (size_t i = RequiredCount; i != 0; --i) {
                 if (!parser_.parse(ctx)) {
                     return false;
                 }
@@ -62,7 +33,7 @@ public:
         const bool report_flag = ctx.report_messages();
         ctx.report_messages(false);
 
-        for (size_t i = MaxCount - MinCount; i != 0; --i) {
+        for (size_t i = OptionalMaxCount; i != 0; --i) {
             const ParserPosition position = ctx.position();
             if (!parser_.parse(ctx)) {
                 ctx.position(position);
@@ -73,25 +44,18 @@ public:
         ctx.report_messages(report_flag);
         return true;
     }
-};
 
-template <Parser Parser, size_t MinCount, size_t MaxCount>
-requires (MinCount < MaxCount && std::is_same_v<typename Parser::ValueType, char>)
-class SequenceParser<Parser, MinCount, MaxCount> final {
-    Parser parser_;
-
-public:
-    using ParserType = SequenceParser;
-    using InputType = Parser::InputType;
-    using ValueType = std::string;
-
-    explicit constexpr SequenceParser(Parser parser) noexcept
-        : parser_ {std::move(parser)} {
+    // no value
+    bool parse(ParserContext<InputType>& ctx, [[maybe_unused]] NoValueType& value) const
+    requires (std::is_same_v<typename Parser::ValueType, NoValueType>) {
+        return parse(ctx);
     }
 
-    bool parse(ParserContext<InputType>& ctx, ValueType& value) const {
-        if constexpr (MinCount != 0) {
-            for (size_t i = MinCount; i != 0; --i) {
+    // string
+    bool parse(ParserContext<InputType>& ctx, std::string& value) const
+    requires (std::is_same_v<typename Parser::ValueType, char>) {
+        if constexpr (RequiredCount != 0) {
+            for (size_t i = RequiredCount; i != 0; --i) {
                 char val {};
                 if (!parser_.parse(ctx, val)) {
                     return false;
@@ -104,7 +68,7 @@ public:
         const bool report_flag = ctx.report_messages();
         ctx.report_messages(false);
 
-        for (size_t i = MaxCount - MinCount; i != 0; --i) {
+        for (size_t i = OptionalMaxCount; i != 0; --i) {
             const ParserPosition position = ctx.position();
             char val {};
             if (!parser_.parse(ctx, val)) {
@@ -119,10 +83,14 @@ public:
         return true;
     }
 
-    bool parse(ParserContext<InputType>& ctx) const {
-        if constexpr (MinCount != 0) {
-            for (size_t i = MinCount; i != 0; --i) {
-                if (!parser_.parse(ctx)) {
+    // vector
+    bool parse(ParserContext<InputType>& ctx, ValueType& value) const
+    requires (!OneOf<typename Parser::ValueType, NoValueType, char>) {
+        if constexpr (RequiredCount != 0) {
+            for (size_t i = RequiredCount; i != 0; --i) {
+                if (typename Parser::ValueType& val = value.emplace_back();
+                    !parser_.parse(ctx, val)) {
+                    value.pop_back();
                     return false;
                 }
             }
@@ -131,9 +99,11 @@ public:
         const bool report_flag = ctx.report_messages();
         ctx.report_messages(false);
 
-        for (size_t i = MaxCount - MinCount; i != 0; --i) {
+        for (size_t i = OptionalMaxCount; i != 0; --i) {
             const ParserPosition position = ctx.position();
-            if (!parser_.parse(ctx)) {
+            if (typename Parser::ValueType& val = value.emplace_back();
+                !parser_.parse(ctx, val)) {
+                value.pop_back();
                 ctx.position(position);
                 break;
             }
@@ -143,51 +113,5 @@ public:
         return true;
     }
 };
-
-template <Parser Parser, size_t MinCount, size_t MaxCount>
-requires (MinCount < MaxCount && std::is_same_v<typename Parser::ValueType, NoValueType>)
-class SequenceParser<Parser, MinCount, MaxCount> final {
-    Parser parser_;
-
-public:
-    using ParserType = SequenceParser;
-    using InputType = Parser::InputType;
-    using ValueType = NoValueType; // TODO: maybe use size_t? do consumers want to know how many times the underlying parser succeeds?
-
-    explicit constexpr SequenceParser(Parser parser) noexcept
-        : parser_ {std::move(parser)} {
-    }
-
-    bool parse(ParserContext<InputType>& ctx) const {
-        if constexpr (MinCount != 0) {
-            for (size_t i = MinCount; i != 0; --i) {
-                if (!parser_.parse(ctx)) {
-                    return false;
-                }
-            }
-        }
-
-        const bool report_flag = ctx.report_messages();
-        ctx.report_messages(false);
-
-        for (size_t i = MaxCount - MinCount; i != 0; --i) {
-            const ParserPosition position = ctx.position();
-            if (!parser_.parse(ctx)) {
-                ctx.position(position);
-                break;
-            }
-        }
-
-        ctx.report_messages(report_flag);
-        return true;
-    }
-
-    bool parse(ParserContext<InputType>& ctx, [[maybe_unused]] ValueType& value) const {
-        return parse(ctx);
-    }
-};
-
-template <Parser Parser>
-SequenceParser(Parser parser) -> SequenceParser<std::decay_t<Parser>>;
 
 } // namespace skarn::parser::details
