@@ -2,21 +2,23 @@ set(PROJECT_NAME skarnc)
 
 find_package(GTest REQUIRED)
 #find_package(spdlog REQUIRED)
-find_package(Boost REQUIRED COMPONENTS parser)
+#find_package(Boost REQUIRED COMPONENTS parser)
 #find_package(Boost REQUIRED COMPONENTS asio)
 #find_package(OpenSSL REQUIRED)
 
 get_source_files(SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/src)
-add_library(${PROJECT_NAME} ${SOURCE_FILES})
+add_library(${PROJECT_NAME} INTERFACE)
+target_sources(${PROJECT_NAME} INTERFACE ${SOURCE_FILES})
+target_compile_features(${PROJECT_NAME} INTERFACE cxx_std_23)
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-target_link_libraries(${PROJECT_NAME} PUBLIC
+#target_link_libraries(${PROJECT_NAME} PUBLIC
 #    spdlog::spdlog
-    Boost::parser
+#    Boost::parser
 #    OpenSSL::Crypto
 #    OpenSSL::SSL
-)
+#)
 
 #---------- tests ------------
 
