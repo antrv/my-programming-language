@@ -34,6 +34,23 @@ public:
         ctx.consume(1);
         return true;
     }
+
+    bool parse(ParserContext<Elem>& ctx) const {
+        const std::span<const Elem> input = ctx.input();
+        if (input.empty()) {
+            ctx.add_message(ParserMsgLevel::Error, ParserMsgCode::C0001, "'{}'", elem_);
+            return false;
+        }
+
+        if (const Elem& elem = input[0];
+            !Eq {}(elem, elem_)) {
+            ctx.add_message(ParserMsgLevel::Error, ParserMsgCode::C0002, "'{}'", elem_);
+            return false;
+        }
+
+        ctx.consume(1);
+        return true;
+    }
 };
 
 } // namespace skarn::parser::details

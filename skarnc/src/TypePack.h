@@ -33,6 +33,17 @@ template <class T, class...Ts>
 struct TypePackInsertAtFirstPosition<T, TypePack<Ts...>> : std::type_identity<TypePack<T, Ts...>> {
 };
 
+template <class Pack, class T>
+struct TypePackFirstOrDefault;
+
+template <class T>
+struct TypePackFirstOrDefault<TypePack<>, T> : std::type_identity<T> {
+};
+
+template <class T, class TFirst, class...Ts>
+struct TypePackFirstOrDefault<TypePack<TFirst, Ts...>, T> : std::type_identity<TFirst> {
+};
+
 template <size_t Size, class Pack>
 struct TypePackFirstN;
 
@@ -227,6 +238,9 @@ struct TypePack : std::type_identity<TypePack<Ts...>> {
 
     template <size_t Index>
     using element_t = details::TypePackElement<Index, TypePack>::type;
+
+    template <class T>
+    using first_or_default_t = details::TypePackFirstOrDefault<TypePack, T>::type;
 
     template <size_t Size>
     using first_n_t = details::TypePackFirstN<Size, TypePack>::type;

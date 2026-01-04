@@ -33,6 +33,11 @@ public:
         ctx.consume(static_cast<std::size_t>(std::distance(input.data(), ptr)));
         return true;
     }
+
+    bool parse(ParserContext<char>& ctx) const {
+        T value {};
+        return parse(ctx, value);
+    }
 };
 
 } // namespace skarn::parser::details

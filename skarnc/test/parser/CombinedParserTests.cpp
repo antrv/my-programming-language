@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include "parser/details/CharParser.h"
 #include "parser/details/CombinedParser.h"
+#include "parser/details/IgnoreParser.h"
 #include "parser/details/LiteralParser.h"
 
 using namespace std::string_view_literals;
@@ -9,8 +10,7 @@ using namespace skarn::parser::details;
 
 TEST(CombinedParserTests, Success)
 {
-    constexpr auto parser = makeCombinedParser(
-        LiteralParser {"template"sv}, CharParser {' '}, LiteralParser {"class"sv});
+    constexpr CombinedParser parser {LiteralParser {"template"sv}, CharParser {' '}, LiteralParser {"class"sv}};
 
     constexpr std::string_view input {"template class 1234"sv};
     ParserContext<char> ctx {input};
@@ -22,8 +22,7 @@ TEST(CombinedParserTests, Success)
 
 TEST(CombinedParserTests, EmptyInput)
 {
-    constexpr auto parser = makeCombinedParser(
-        LiteralParser {"template"sv}, CharParser {' '}, LiteralParser {"class"sv});
+    constexpr CombinedParser parser {LiteralParser {"template"sv}, CharParser {' '}, LiteralParser {"class"sv}};
 
     constexpr std::string_view input;
     ParserContext<char> ctx {input};
@@ -43,8 +42,7 @@ TEST(CombinedParserTests, EmptyInput)
 
 TEST(CombinedParserTests, PartiallyValidInput)
 {
-    constexpr auto parser = makeCombinedParser(
-        LiteralParser {"template"sv}, CharParser {' '}, LiteralParser {"class"sv});
+    constexpr CombinedParser parser {LiteralParser {"template"sv}, CharParser {' '}, LiteralParser {"class"sv}};
 
     constexpr std::string_view input {"template struct"sv};
     ParserContext<char> ctx {input};
@@ -66,8 +64,7 @@ TEST(CombinedParserTests, PartiallyValidInput)
 
 TEST(CombinedParserTests, InvalidInput)
 {
-    constexpr auto parser = makeCombinedParser(
-        LiteralParser {"template"sv}, CharParser {' '}, LiteralParser {"class"sv});
+    constexpr CombinedParser parser {LiteralParser {"template"sv}, CharParser {' '}, LiteralParser {"class"sv}};
 
     constexpr std::string_view input {"xxx bbb"sv};
     ParserContext<char> ctx {input};
@@ -83,4 +80,17 @@ TEST(CombinedParserTests, InvalidInput)
     EXPECT_EQ(messages[0].offset, 0);
     EXPECT_EQ(messages[0].line, 1U);
     EXPECT_EQ(messages[0].column, 1U);
+}
+
+TEST(CombinedParserTests, IgnoreAllValues)
+{
+    constexpr CombinedParser parser {
+        IgnoreParser {LiteralParser {"template"sv}},
+        IgnoreParser {CharParser {' '}},
+        IgnoreParser {LiteralParser {"class"sv}}};
+
+    constexpr std::string_view input {"template class 1234"sv};
+    ParserContext<char> ctx {input};
+    ASSERT_TRUE(parser.parse(ctx));
+    EXPECT_EQ(std::string_view {ctx.input()}, " 1234"sv);
 }

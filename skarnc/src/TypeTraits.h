@@ -36,4 +36,7 @@ concept AllSameTypes = details::all_same_types<Ts...>;
 template <class T, class...Ts>
 concept AllSameTypeAs = details::all_same_types<T, Ts...>;
 
+template <class T, class...Ts>
+concept OneOf = (std::is_same_v<T, Ts> || ...);
+
 } // namespace skarn

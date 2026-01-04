@@ -36,6 +36,10 @@ public:
 
         return false;
     }
+
+    bool parse(ParserContext<char>& ctx) const {
+        return parser_.parse(ctx);
+    }
 };
 
 } // namespace skarn::parser::details

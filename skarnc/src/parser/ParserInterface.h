@@ -2,9 +2,10 @@
 
 #include <expected>
 #include "details/CharParser.h"
-#include "details/LiteralParser.h"
 #include "details/CombinedParser.h"
 #include "details/ExpectedParser.h"
+#include "details/IgnoreParser.h"
+#include "details/LiteralParser.h"
 #include "details/OptionalParser.h"
 #include "details/SequenceParser.h"
 #include "details/TransformParser.h"
@@ -74,20 +75,26 @@ public:
         return ParserInterface<ResultParser> {details::makeVariantParser(parser_, next.parser())};
     }
 
-    constexpr auto operator *() const noexcept {
+    constexpr ParserInterface<details::SequenceParser<Parser>> operator *() const noexcept {
         return ParserInterface<details::SequenceParser<Parser>> {details::SequenceParser<Parser> {parser_}};
     }
 
-    constexpr auto operator +() const noexcept {
+    constexpr ParserInterface<details::SequenceParser<Parser, 1>> operator +() const noexcept {
         return ParserInterface<details::SequenceParser<Parser, 1>> {details::SequenceParser<Parser, 1> {parser_}};
     }
 
+    constexpr ParserInterface<details::IgnoreParser<Parser>> operator ~() const noexcept {
+        return ParserInterface<details::IgnoreParser<Parser>> {details::IgnoreParser<Parser> {parser_}};
+    }
+
     constexpr auto expected(const std::string_view what) const noexcept {
-        return ParserInterface<details::ExpectedParser<Parser>> {parser_.parser(), what};
+        using ResultParser = decltype(details::makeExpectedParser(parser_, what));
+        return ParserInterface<ResultParser> {details::makeExpectedParser(parser_, what)};
     }
 
     constexpr auto optional() const noexcept {
-        return ParserInterface<details::OptionalParser<Parser>> {};
+        using ResultParser = decltype(details::makeOptionalParser(parser_));
+        return ParserInterface<ResultParser> {details::makeOptionalParser(parser_)};
     }
 
     template <details::Parser WrapParser>

@@ -32,6 +32,11 @@ public:
         ctx.consume(1);
         return true;
     }
+
+    bool parse(ParserContext<char>& ctx) const {
+        char value {};
+        return parse(ctx, value);
+    }
 };
 
 } // namespace skarn::parser::details

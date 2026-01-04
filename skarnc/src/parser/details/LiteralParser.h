@@ -34,6 +34,11 @@ public:
         ctx.consume(literal_.length());
         return true;
     }
+
+    bool parse(ParserContext<char>& ctx) const {
+        std::string_view value;
+        return parse(ctx, value);
+    }
 };
 
 } // namespace skarn::parser::details

@@ -22,6 +22,11 @@ public:
         value = value_;
         return true;
     }
+
+    template <class Elem>
+    bool parse([[maybe_unused]] ParserContext<Elem>& ctx) const {
+        return true;
+    }
 };
 
 } // namespace skarn::parser::details

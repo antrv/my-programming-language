@@ -1,10 +1,10 @@
 #pragma once
 
 #include "ParserContext.h"
-#include <optional>
 
 namespace skarn::parser::details {
 
+/// Parser that replaces the error message.
 template <Parser Parser>
 class ExpectedParser final {
     Parser parser_;
@@ -39,6 +39,29 @@ public:
 
         return true;
     }
+
+    bool parse(ParserContext<InputType>& ctx) const {
+        if (!parser_.parse(ctx)) {
+            if (ctx.report_messages()) {
+                ctx.messages().back().expected = what_;
+            }
+
+            return false;
+        }
+
+        return true;
+    }
 };
+
+template <Parser Parser>
+constexpr auto makeExpectedParser(Parser parser, const std::string_view what) noexcept {
+    using ParserType = std::decay_t<Parser>;
+    if constexpr (SpecializationOf<ParserType, ExpectedParser>) {
+        return makeExpectedParser(parser.parser(), what);
+    }
+    else {
+        return ExpectedParser<ParserType> {std::move(parser), what};
+    }
+}
 
 } // namespace skarn::parser::details
