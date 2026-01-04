@@ -93,12 +93,11 @@ OptionalParser(Parser) -> OptionalParser<std::decay_t<Parser>>;
 
 template <Parser Parser>
 constexpr auto makeOptionalParser(Parser parser) noexcept {
-    using ParserType = std::decay_t<Parser>;
-    if constexpr (SpecializationOf<ParserType, OptionalParser>) {
+    if constexpr (SpecializationOf<Parser, OptionalParser>) {
         return parser;
     }
     else {
-        return OptionalParser<ParserType> {std::move(parser)};
+        return OptionalParser<Parser> {std::move(parser)};
     }
 }
 

@@ -84,7 +84,8 @@ public:
     }
 
     constexpr ParserInterface<details::IgnoreParser<Parser>> operator ~() const noexcept {
-        return ParserInterface<details::IgnoreParser<Parser>> {details::IgnoreParser<Parser> {parser_}};
+        using ResultParser = decltype(details::makeIgnoreParser(parser_));
+        return ParserInterface<ResultParser> {details::makeIgnoreParser(parser_)};
     }
 
     constexpr auto expected(const std::string_view what) const noexcept {
@@ -99,23 +100,13 @@ public:
 
     template <details::Parser WrapParser>
     constexpr auto wrap(const ParserInterface<WrapParser>& wrapParser) const noexcept {
-        using wrap_t = WrapParser::ValueType;
-        using tuple_t = std::tuple<wrap_t, ValueType, wrap_t>; // TODO: implement a parser that generates no value
-        return wrapParser >> *this >> wrapParser >> [](ValueType& result, tuple_t& value)
-            static noexcept(std::is_nothrow_assignable_v<ValueType, ValueType>) {
-            result = std::move(std::get<1>(value));
-        };
+        return ~wrapParser >> *this >> ~wrapParser;
     }
 
     template <details::Parser SeparatorParser>
     constexpr auto seq(const ParserInterface<SeparatorParser>& separatorParser) const noexcept {
-        using tuple_t = decltype(details::makeCombinedParser(separatorParser.parser(), parser_))::ValueType;
         return
-            *this >> *(separatorParser >> *this >>
-            [](ValueType& result, tuple_t& value) static {
-                constexpr size_t lastIndex = std::tuple_size_v<tuple_t> - 1;
-                result = std::move(std::get<lastIndex>(value));
-            }) >>
+            *this >> *(~separatorParser >> *this) >>
             [](std::vector<ValueType>& result, std::tuple<ValueType, std::vector<ValueType>>& value) static {
                 result.push_back(std::move(std::get<0>(value))); // TODO: extend the SequenceParser to accept a separator
                 result.append_range(std::move(std::get<1>(value)));

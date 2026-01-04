@@ -27,4 +27,14 @@ public:
     }
 };
 
+template <Parser Parser>
+constexpr auto makeIgnoreParser(Parser parser) noexcept {
+    if constexpr (SpecializationOf<Parser, IgnoreParser>) {
+        return parser;
+    }
+    else {
+        return IgnoreParser<Parser> {std::move(parser)};
+    }
+}
+
 } // namespace skarn::parser::details

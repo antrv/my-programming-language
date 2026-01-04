@@ -4,33 +4,30 @@
 using namespace std::string_view_literals;
 using namespace skarn::parser;
 
-TEST(ParserTests, Identifier) {
-    constexpr auto identParser = Parse::char_([](const char c) static noexcept {
-            return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c == '_';
-        }, "identifier"sv) >>
-        *Parse::char_([](const char c) static noexcept {
-            return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_';
-        }, "identifier"sv) >>
-        [](std::string& result, const std::tuple<char, std::string>& value) static {
-            result = std::get<0>(value) + std::get<1>(value);
-        };
+namespace {
+constexpr auto letterPredicate = [](const char c) static noexcept {
+    return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c == '_';
+};
 
+constexpr auto letterDigitPredicate = [](const char c) static noexcept {
+    return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_';
+};
+
+constexpr auto identParser =
+    Parse::char_(letterPredicate, "identifier"sv) >>
+    *Parse::char_(letterDigitPredicate, "identifier"sv) >>
+    [](std::string& result, const std::tuple<char, std::string>& value) static {
+        result = std::get<0>(value) + std::get<1>(value);
+    };
+} // namespace
+
+TEST(ParserTests, Identifier) {
     const auto result = identParser.parse("variableName123_xxx"sv);
     ASSERT_TRUE(result);
     EXPECT_EQ(result.value(), "variableName123_xxx"sv);
 }
 
 TEST(ParserTests, IdentifierInvalidInput) {
-    constexpr auto identParser = Parse::char_([](const char c) static noexcept {
-            return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c == '_';
-        }, "identifier"sv) >>
-        *Parse::char_([](const char c) static noexcept {
-            return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_';
-        }, "identifier"sv) >>
-        [](std::string& result, const std::tuple<char, std::string>& value) static {
-            result = std::get<0>(value) + std::get<1>(value);
-        };
-
     const auto result = identParser.parse("123variable"sv);
     ASSERT_FALSE(result);
 
@@ -56,14 +53,15 @@ TEST(ParserTests, PairOfIntegers) {
 }
 
 TEST(ParserTests, ListOfIntegers) {
-    constexpr auto parser = '(' >> Parse::integer().seq(*Parse::ws() >> ';' >> *Parse::ws()) >> ')';
+    constexpr auto parser =
+        ~Parse::char_('(') >>
+        Parse::integer().seq(*~Parse::ws() >> ~Parse::char_(';') >> *~Parse::ws()) >>
+        ~Parse::char_(')');
 
     const auto result = parser.parse("(-4 ;56\t;3\r\n;  -5; 0; 1)");
     ASSERT_TRUE(result);
 
-    const auto& value = result.value();
-    const std::vector<int>& ints = std::get<1>(value);
-
+    const std::vector<int>& ints = result.value();
     ASSERT_EQ(ints.size(), 6);
     EXPECT_EQ(ints[0], -4);
     EXPECT_EQ(ints[1], 56);

@@ -55,12 +55,11 @@ public:
 
 template <Parser Parser>
 constexpr auto makeExpectedParser(Parser parser, const std::string_view what) noexcept {
-    using ParserType = std::decay_t<Parser>;
-    if constexpr (SpecializationOf<ParserType, ExpectedParser>) {
+    if constexpr (SpecializationOf<Parser, ExpectedParser>) {
         return makeExpectedParser(parser.parser(), what);
     }
     else {
-        return ExpectedParser<ParserType> {std::move(parser), what};
+        return ExpectedParser<Parser> {std::move(parser), what};
     }
 }
 
