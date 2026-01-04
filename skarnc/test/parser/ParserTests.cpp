@@ -1,38 +1,37 @@
 #include <gtest/gtest.h>
-
 #include "parser/Parser.h"
 
 using namespace std::string_view_literals;
 using namespace skarn::parser;
 
 TEST(ParserTests, Identifier) {
-    constexpr auto identParser = Parse::char_([](const char c) constexpr static noexcept {
+    constexpr auto identParser = Parse::char_([](const char c) static noexcept {
             return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c == '_';
         }, "identifier"sv) >>
-        *Parse::char_([](const char c) constexpr static noexcept {
+        *Parse::char_([](const char c) static noexcept {
             return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_';
         }, "identifier"sv) >>
         [](std::string& result, const std::tuple<char, std::string>& value) static {
             result = std::get<0>(value) + std::get<1>(value);
         };
 
-    const auto result = identParser.parse("variableName123_xxx");
+    const auto result = identParser.parse("variableName123_xxx"sv);
     ASSERT_TRUE(result);
     EXPECT_EQ(result.value(), "variableName123_xxx"sv);
 }
 
 TEST(ParserTests, IdentifierInvalidInput) {
-    constexpr auto identParser = Parse::char_([](const char c) constexpr static noexcept {
+    constexpr auto identParser = Parse::char_([](const char c) static noexcept {
             return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c == '_';
         }, "identifier"sv) >>
-        *Parse::char_([](const char c) constexpr static noexcept {
+        *Parse::char_([](const char c) static noexcept {
             return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_';
         }, "identifier"sv) >>
         [](std::string& result, const std::tuple<char, std::string>& value) static {
             result = std::get<0>(value) + std::get<1>(value);
         };
 
-    const auto result = identParser.parse("123variable");
+    const auto result = identParser.parse("123variable"sv);
     ASSERT_FALSE(result);
 
     const auto& messages = result.error();
@@ -43,4 +42,33 @@ TEST(ParserTests, IdentifierInvalidInput) {
     EXPECT_EQ(messages[0].offset, 0);
     EXPECT_EQ(messages[0].line, 1U);
     EXPECT_EQ(messages[0].column, 1U);
+}
+
+TEST(ParserTests, PairOfIntegers) {
+    constexpr auto parser = '(' >> Parse::integer() >> ';' >> Parse::integer() >> ')';
+
+    const auto result = parser.parse("(-4;56)");
+    ASSERT_TRUE(result);
+
+    const auto& value = result.value();
+    EXPECT_EQ(std::get<1>(value), -4);
+    EXPECT_EQ(std::get<3>(value), 56);
+}
+
+TEST(ParserTests, ListOfIntegers) {
+    constexpr auto parser = '(' >> Parse::integer().seq(*Parse::ws() >> ';' >> *Parse::ws()) >> ')';
+
+    const auto result = parser.parse("(-4 ;56\t;3\r\n;  -5; 0; 1)");
+    ASSERT_TRUE(result);
+
+    const auto& value = result.value();
+    const std::vector<int>& ints = std::get<1>(value);
+
+    ASSERT_EQ(ints.size(), 6);
+    EXPECT_EQ(ints[0], -4);
+    EXPECT_EQ(ints[1], 56);
+    EXPECT_EQ(ints[2], 3);
+    EXPECT_EQ(ints[3], -5);
+    EXPECT_EQ(ints[4], 0);
+    EXPECT_EQ(ints[5], 1);
 }

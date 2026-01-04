@@ -1,6 +1,8 @@
 #pragma once
 
 #include <expected>
+#include "details/CharParser.h"
+#include "details/LiteralParser.h"
 #include "details/CombinedParser.h"
 #include "details/ExpectedParser.h"
 #include "details/OptionalParser.h"
@@ -50,6 +52,16 @@ public:
         return ParserInterface<ResultParser> {details::makeCombinedParser(parser_, next.parser())};
     }
 
+    constexpr auto operator >>(const char chr) const noexcept {
+        using ResultParser = decltype(details::makeCombinedParser(parser_, details::CharParser {chr}));
+        return ParserInterface<ResultParser> {details::makeCombinedParser(parser_, details::CharParser {chr})};
+    }
+
+    constexpr auto operator >>(const std::string_view literal) const noexcept {
+        using ResultParser = decltype(details::makeCombinedParser(parser_, details::LiteralParser {literal}));
+        return ParserInterface<ResultParser> {details::makeCombinedParser(parser_, details::LiteralParser {literal})};
+    }
+
     template <details::TransformInvocable<typename Parser::ValueType> Invocable>
     constexpr auto operator >>(Invocable invocable) const noexcept {
         return ParserInterface<details::TransformParser<Parser, Invocable>> {
@@ -77,6 +89,47 @@ public:
     constexpr auto optional() const noexcept {
         return ParserInterface<details::OptionalParser<Parser>> {};
     }
+
+    template <details::Parser WrapParser>
+    constexpr auto wrap(const ParserInterface<WrapParser>& wrapParser) const noexcept {
+        using wrap_t = WrapParser::ValueType;
+        using tuple_t = std::tuple<wrap_t, ValueType, wrap_t>; // TODO: implement a parser that generates no value
+        return wrapParser >> *this >> wrapParser >> [](ValueType& result, tuple_t& value)
+            static noexcept(std::is_nothrow_assignable_v<ValueType, ValueType>) {
+            result = std::move(std::get<1>(value));
+        };
+    }
+
+    template <details::Parser SeparatorParser>
+    constexpr auto seq(const ParserInterface<SeparatorParser>& separatorParser) const noexcept {
+        using tuple_t = decltype(details::makeCombinedParser(separatorParser.parser(), parser_))::ValueType;
+        return
+            *this >> *(separatorParser >> *this >>
+            [](ValueType& result, tuple_t& value) static {
+                constexpr size_t lastIndex = std::tuple_size_v<tuple_t> - 1;
+                result = std::move(std::get<lastIndex>(value));
+            }) >>
+            [](std::vector<ValueType>& result, std::tuple<ValueType, std::vector<ValueType>>& value) static {
+                result.push_back(std::move(std::get<0>(value))); // TODO: extend the SequenceParser to accept a separator
+                result.append_range(std::move(std::get<1>(value)));
+            };
+    }
+
+    constexpr auto seq(const char chr) const noexcept {
+        return seq(ParserInterface {details::CharParser {chr}});
+    }
 };
+
+template <details::Parser Parser>
+constexpr auto operator >>(const char chr, const ParserInterface<Parser>& parser) noexcept {
+    using ResultParser = decltype(details::makeCombinedParser(details::CharParser {chr}, parser.parser()));
+    return ParserInterface<ResultParser> {details::makeCombinedParser(details::CharParser {chr}, parser.parser())};
+}
+
+template <details::Parser Parser>
+constexpr auto operator >>(const std::string_view literal, const ParserInterface<Parser>& parser) noexcept {
+    using ResultParser = decltype(details::makeCombinedParser(details::LiteralParser {literal}, parser.parser()));
+    return ParserInterface<ResultParser> {details::makeCombinedParser(details::LiteralParser {literal}, parser.parser())};
+}
 
 } // namespace skarn::parser

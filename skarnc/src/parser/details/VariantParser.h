@@ -24,6 +24,10 @@ private:
         return parser.parse(ctx, val);
     }
 
+    [[nodiscard]] constexpr const std::tuple<Parsers...>& parsers() const noexcept {
+        return parsers_;
+    }
+
     template <size_t Index>
     bool parseVariant(ParserContext<InputType>& ctx, ValueType& value) const {
         const ParserPosition position = ctx.position();

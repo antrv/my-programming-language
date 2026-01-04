@@ -5,7 +5,6 @@
 #include <cstdint>
 #include <format>
 #include <span>
-#include <stack>
 
 namespace skarn::parser::details {
 

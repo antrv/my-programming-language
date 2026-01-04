@@ -34,6 +34,21 @@ struct Parse final {
         return details::CharPredicateParser {std::move(predicate), what};
     }
 
+    static constexpr auto ws(const std::string_view what = {}) noexcept {
+        using namespace std::string_view_literals;
+        return char_([](const char chr) static noexcept {
+            switch (chr) {
+                case ' ':
+                case '\t':
+                case '\n':
+                case '\r':
+                    return true;
+                default:
+                    return false;
+            };
+        }, what.empty() ? "whitespace"sv : what);
+    }
+
     static constexpr ParserInterface<details::LiteralParser> literal(const std::string_view str) noexcept {
         return details::LiteralParser {str};
     }
