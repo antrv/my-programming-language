@@ -7,6 +7,7 @@
 #include "details/IgnoreParser.h"
 #include "details/LiteralParser.h"
 #include "details/OptionalParser.h"
+#include "details/ReferenceParser.h"
 #include "details/SequenceParser.h"
 #include "details/TransformParser.h"
 #include "details/VariantParser.h"
@@ -22,6 +23,7 @@ class ParserInterface final {
 
 public:
     using ParserType = Parser;
+    using InputType = Parser::InputType;
     using ValueType = Parser::ValueType;
 
     constexpr ParserInterface() noexcept(std::is_nothrow_constructible_v<Parser>)
@@ -115,6 +117,15 @@ public:
 
     constexpr auto seq(const char chr) const noexcept {
         return seq(ParserInterface {details::CharParser {chr}});
+    }
+
+    template <details::Parser ParserRef>
+    requires (
+        SpecializationOf<Parser, details::ReferenceParser> &&
+        std::is_same_v<ValueType, typename ParserRef::ValueType> &&
+        std::is_same_v<InputType, typename ParserRef::InputType>)
+    void assign(ParserRef parser) const {
+        parser_.assign(std::move(parser));
     }
 };
 

@@ -9,23 +9,32 @@ namespace skarn::parser::details {
 template <Parser...Parsers>
 requires (sizeof...(Parsers) >= 2 && CompatibleParsers<Parsers...>)
 class VariantParser final {
-public:
-    using ParserType = VariantParser;
-    using ValueType = std::variant<typename Parsers::ValueType...>;
-    using InputType = InputTypeOf<Parsers...>;
-
-private:
     std::tuple<Parsers...> parsers_;
 
-    [[nodiscard]] constexpr const std::tuple<Parsers...>& parsers() const noexcept {
-        return parsers_;
-    }
+    template <size_t Index>
+    using ParserValueType = TypePack<typename Parsers::ValueType...>::template element_t<Index>;
 
+public:
+    using ParserType = VariantParser;
+    using InputType = InputTypeOf<Parsers...>;
+    using ValueType =
+        type_pack_unique_t<TypePack<typename Parsers::ValueType...>>::
+        template replace_t<NoValueType, std::monostate>::
+        template apply_to_t<std::variant>;
+
+private:
     bool parseLastVariant(ParserContext<InputType>& ctx, ValueType& value) const {
         constexpr size_t lastIndex = sizeof...(Parsers) - 1;
-        auto& val = value.template emplace<lastIndex>();
         const auto& parser = std::get<lastIndex>(parsers_);
-        return parser.parse(ctx, val);
+        using Value = ParserValueType<lastIndex>;
+        if constexpr (std::is_same_v<Value, NoValueType>) {
+            value.template emplace<std::monostate>();
+            return parser.parse(ctx);
+        }
+        else {
+            auto& val = value.template emplace<Value>();
+            return parser.parse(ctx, val);
+        }
     }
 
     bool parseLastVariant(ParserContext<InputType>& ctx) const {
@@ -38,11 +47,21 @@ private:
     bool parseVariant(ParserContext<InputType>& ctx, ValueType& value) const {
         const ParserPosition position = ctx.position();
 
-        auto& val = value.template emplace<Index>();
-        if (const auto& parser = std::get<Index>(parsers_);
-            !parser.parse(ctx, val)) {
-            ctx.position(position);
-            return false;
+        using Value = ParserValueType<Index>;
+        const auto& parser = std::get<Index>(parsers_);
+        if constexpr (std::is_same_v<Value, NoValueType>) {
+            value.template emplace<std::monostate>();
+            if (!parser.parse(ctx)) {
+                ctx.position(position);
+                return false;
+            }
+        }
+        else {
+            auto& val = value.template emplace<Value>();
+            if (!parser.parse(ctx, val)) {
+                ctx.position(position);
+                return false;
+            }
         }
 
         return true;
@@ -86,6 +105,10 @@ private:
 public:
     explicit constexpr VariantParser(Parsers... parsers) noexcept
         : parsers_ {std::move(parsers)...} {
+    }
+
+    [[nodiscard]] constexpr const std::tuple<Parsers...>& parsers() const noexcept {
+        return parsers_;
     }
 
     bool parse(ParserContext<InputType>& ctx, ValueType& value) const {

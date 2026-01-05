@@ -6,6 +6,7 @@
 #include "details/ElemParser.h"
 #include "details/IntParser.h"
 #include "details/LiteralParser.h"
+#include "details/ReferenceParser.h"
 #include "details/ValueParser.h"
 #include "ParserInterface.h"
 
@@ -55,6 +56,11 @@ struct Parse final {
 
     template <std::integral T = int>
     static constexpr ParserInterface<details::IntParser<T>> integer() noexcept {
+        return {};
+    }
+
+    template <class Value>
+    static constexpr ParserInterface<details::ReferenceParser<Value>> ref() noexcept {
         return {};
     }
 };

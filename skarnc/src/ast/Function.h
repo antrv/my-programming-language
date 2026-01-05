@@ -1,8 +1,6 @@
 #pragma once
 
-#include <memory>
-#include <string>
-#include <vector>
+#include "Expression.h"
 
 namespace skarn::ast {
 
@@ -28,20 +26,6 @@ protected:
     Statement() = default;
 };
 
-struct Expression {
-    virtual ~Expression() = default;
-
-protected:
-    Expression() = default;
-};
-
-struct ConstantExpression : Expression {
-    int value;
-};
-
-struct VariableExpression : Expression {
-    std::string name;
-};
 
 struct VariableDeclStatement : Statement {
     std::string name;

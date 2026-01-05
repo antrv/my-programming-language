@@ -18,11 +18,11 @@ public:
         : parser_ {std::move(parser)} {
     }
 
-    bool parse(ParserContext<char>& ctx, [[maybe_unused]] ValueType& value) const {
+    bool parse(ParserContext<InputType>& ctx, [[maybe_unused]] ValueType& value) const {
         return parser_.parse(ctx);
     }
 
-    bool parse(ParserContext<char>& ctx) const {
+    bool parse(ParserContext<InputType>& ctx) const {
         return parser_.parse(ctx);
     }
 };

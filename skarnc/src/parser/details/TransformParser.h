@@ -27,7 +27,7 @@ public:
         , transform_ {std::move(transform)} {
     }
 
-    bool parse(ParserContext<char>& ctx, ValueType& value) const {
+    bool parse(ParserContext<InputType>& ctx, ValueType& value) const {
         if (typename Parser::ValueType val {};
             parser_.parse(ctx, val)) {
             transform_(value, val);
@@ -37,7 +37,7 @@ public:
         return false;
     }
 
-    bool parse(ParserContext<char>& ctx) const {
+    bool parse(ParserContext<InputType>& ctx) const {
         return parser_.parse(ctx);
     }
 };
