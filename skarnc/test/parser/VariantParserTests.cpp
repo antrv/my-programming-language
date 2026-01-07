@@ -5,7 +5,6 @@
 
 using namespace std::string_view_literals;
 using namespace skarn::parser;
-using namespace skarn::parser::details;
 
 TEST(VariantParserTests, FirstValue)
 {

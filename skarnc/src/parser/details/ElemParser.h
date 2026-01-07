@@ -2,7 +2,7 @@
 
 #include "ParserContext.h"
 
-namespace skarn::parser::details {
+namespace skarn::parser {
 
 template <class Elem, class Eq = std::equal_to<Elem>>
 class ElemParser final {
@@ -53,4 +53,4 @@ public:
     }
 };
 
-} // namespace skarn::parser::details
+} // namespace skarn::parser

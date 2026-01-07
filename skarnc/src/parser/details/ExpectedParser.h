@@ -2,10 +2,10 @@
 
 #include "ParserContext.h"
 
-namespace skarn::parser::details {
+namespace skarn::parser {
 
 /// Parser that replaces the error message.
-template <Parser Parser>
+template <details::Parser Parser>
 class ExpectedParser final {
     Parser parser_;
     std::string_view what_;
@@ -54,7 +54,7 @@ public:
     }
 };
 
-template <Parser Parser>
+template <details::Parser Parser>
 constexpr auto makeExpectedParser(Parser parser, const std::string_view what) noexcept {
     if constexpr (SpecializationOf<Parser, ExpectedParser>) {
         return makeExpectedParser(parser.parser(), what);
@@ -64,4 +64,4 @@ constexpr auto makeExpectedParser(Parser parser, const std::string_view what) no
     }
 }
 
-} // namespace skarn::parser::details
+} // namespace skarn::parser

@@ -3,7 +3,7 @@
 #include "ParserContext.h"
 #include <charconv>
 
-namespace skarn::parser::details {
+namespace skarn::parser {
 
 template <std::integral T, int Base = 10>
 class IntParser final {
@@ -40,4 +40,4 @@ public:
     }
 };
 
-} // namespace skarn::parser::details
+} // namespace skarn::parser

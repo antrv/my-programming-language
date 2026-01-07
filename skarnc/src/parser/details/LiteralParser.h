@@ -2,7 +2,7 @@
 
 #include "ParserContext.h"
 
-namespace skarn::parser::details {
+namespace skarn::parser {
 
 class LiteralParser final {
     std::string_view literal_;
@@ -41,4 +41,4 @@ public:
     }
 };
 
-} // namespace skarn::parser::details
+} // namespace skarn::parser

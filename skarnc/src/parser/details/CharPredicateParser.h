@@ -3,7 +3,7 @@
 #include "ParserContext.h"
 #include <concepts>
 
-namespace skarn::parser::details {
+namespace skarn::parser {
 
 template <std::predicate<char> Predicate>
 class CharPredicateParser final {
@@ -44,4 +44,4 @@ public:
     }
 };
 
-} // namespace skarn::parser::details
+} // namespace skarn::parser

@@ -2,7 +2,7 @@
 
 #include "ParserContext.h"
 
-namespace skarn::parser::details {
+namespace skarn::parser {
 
 template <class Value>
 class ValueParser final {
@@ -25,8 +25,9 @@ public:
 
     template <class Elem>
     bool parse([[maybe_unused]] ParserContext<Elem>& ctx) const {
+        std::ignore = this;
         return true;
     }
 };
 
-} // namespace skarn::parser::details
+} // namespace skarn::parser

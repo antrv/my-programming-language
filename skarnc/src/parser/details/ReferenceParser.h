@@ -3,8 +3,9 @@
 #include "ParserContext.h"
 #include <memory>
 
-namespace skarn::parser::details {
+namespace skarn::parser {
 
+namespace details {
 template <class Value, class Input = char>
 requires (!std::is_same_v<Input, AnyInputType>)
 class ParserStorage final {
@@ -56,9 +57,9 @@ public:
     requires (std::is_same_v<Value, typename Parser::ValueType> && std::is_same_v<Input, typename Parser::InputType>)
     explicit ParserStorage(Parser parser)
         : storage_ {create(std::move(parser))}
-        , parser_ptr_ {storage_.get()}
-        , parse_ptr_ {&call_parse<Parser>}
-        , parse_no_value_ptr_ {&call_parse_no_value<Parser>}
+    , parser_ptr_ {storage_.get()}
+    , parse_ptr_ {&call_parse<Parser>}
+    , parse_no_value_ptr_ {&call_parse_no_value<Parser>}
     {
     }
 
@@ -78,11 +79,12 @@ public:
 template <Parser Parser>
 requires (!std::is_same_v<typename Parser::InputType, AnyInputType>)
 ParserStorage(Parser parser) -> ParserStorage<typename Parser::ValueType, typename Parser::InputType>;
+} // namespace details
 
 /// Parser that references to another parser, allowing to build recursive parser definitions.
 template <class Value, class Input = char, class = decltype([]{})>
 class ReferenceParser final {
-    inline static ParserStorage<Value, Input> storage_;
+    inline static details::ParserStorage<Value, Input> storage_;
 
 public:
     using ParserType = ReferenceParser;
@@ -91,11 +93,11 @@ public:
 
     explicit constexpr ReferenceParser() noexcept = default;
 
-    template <Parser Parser>
+    template <details::Parser Parser>
     requires (std::is_same_v<Value, typename Parser::ValueType> && std::is_same_v<Input, typename Parser::InputType>)
     void assign(Parser parser) const {
         std::ignore = this;
-        storage_ = ParserStorage {parser};
+        storage_ = details::ParserStorage {parser};
     }
 
     bool parse(ParserContext<InputType>& ctx, ValueType& value) const
@@ -116,4 +118,4 @@ public:
     }
 };
 
-} // namespace skarn::parser::details
+} // namespace skarn::parser

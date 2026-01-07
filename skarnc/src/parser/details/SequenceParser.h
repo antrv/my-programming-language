@@ -3,9 +3,9 @@
 #include "ParserContext.h"
 #include <limits>
 
-namespace skarn::parser::details {
+namespace skarn::parser {
 
-template <Parser Parser, size_t RequiredCount = 0, size_t OptionalMaxCount = std::numeric_limits<size_t>::max()>
+template <details::Parser Parser, size_t RequiredCount = 0, size_t OptionalMaxCount = std::numeric_limits<size_t>::max()>
 class SequenceParser final {
     Parser parser_;
 
@@ -108,4 +108,4 @@ public:
     }
 };
 
-} // namespace skarn::parser::details
+} // namespace skarn::parser

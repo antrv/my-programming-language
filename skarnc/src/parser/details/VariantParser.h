@@ -4,10 +4,10 @@
 #include <tuple>
 #include <variant>
 
-namespace skarn::parser::details {
+namespace skarn::parser {
 
-template <Parser...Parsers>
-requires (sizeof...(Parsers) >= 2 && CompatibleParsers<Parsers...>)
+template <details::Parser...Parsers>
+requires (sizeof...(Parsers) >= 2 && details::CompatibleParsers<Parsers...>)
 class VariantParser final {
     std::tuple<Parsers...> parsers_;
 
@@ -16,7 +16,7 @@ class VariantParser final {
 
 public:
     using ParserType = VariantParser;
-    using InputType = InputTypeOf<Parsers...>;
+    using InputType = details::InputTypeOf<Parsers...>;
     using ValueTypePack = type_pack_unique_t<TypePack<typename Parsers::ValueType...>>;
     using ValueType = std::conditional_t<
         ValueTypePack::size == 1,
@@ -139,11 +139,11 @@ public:
     }
 };
 
-template <Parser Parser1, Parser Parser2, Parser...Parsers>
-requires (CompatibleParsers<Parser1, Parser2, Parsers...>)
-constexpr auto makeVariantParser(Parser1 parser1, Parser2 parser2, Parsers... parsers) noexcept {
+template <details::Parser...Parsers>
+requires (sizeof...(Parsers) >= 2 && details::CompatibleParsers<Parsers...>)
+constexpr auto makeVariantParser(Parsers... parsers) noexcept {
     // Helper to turn a single parser into a tuple (for concatenation)
-    const auto toTuple = []<Parser P>(P&& p) static constexpr noexcept {
+    const auto toTuple = []<details::Parser P>(P&& p) static constexpr noexcept {
         if constexpr (SpecializationOf<P, VariantParser>) {
             return p.parsers(); // It's a VariantParser, return its internal tuple
         } else {
@@ -151,9 +151,9 @@ constexpr auto makeVariantParser(Parser1 parser1, Parser2 parser2, Parsers... pa
         }
     };
 
-    return std::apply([]<Parser...FlattenedParsers>(FlattenedParsers...flattenedParsers) static constexpr noexcept {
+    return std::apply([]<details::Parser...FlattenedParsers>(FlattenedParsers...flattenedParsers) static constexpr noexcept {
         return VariantParser<std::decay_t<FlattenedParsers>...> {std::move(flattenedParsers)...};
-    }, std::tuple_cat(toTuple(std::move(parser1)), toTuple(std::move(parser2)), toTuple(std::move(parsers))...));
+    }, std::tuple_cat(toTuple(std::move(parsers))...));
 }
 
-} // namespace skarn::parser::details
+} // namespace skarn::parser

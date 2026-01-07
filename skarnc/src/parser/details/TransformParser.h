@@ -2,8 +2,9 @@
 
 #include "ParserContext.h"
 
-namespace skarn::parser::details {
+namespace skarn::parser {
 
+namespace details {
 template <class T, class Value>
 struct TransformInvocableResult;
 
@@ -52,10 +53,11 @@ struct TransformInvocableResult<F, Value> : TransformInvocableResult<decltype(&F
 template <class T, class Value>
 concept TransformInvocable =
     requires (const T& t, typename TransformInvocableResult<T, Value>::type& result, Value& value) {
-        { t(result, value) } -> std::same_as<void>;
+    { t(result, value) } -> std::same_as<void>;
     };
+} // namespace details
 
-template <Parser Parser, TransformInvocable<typename Parser::ValueType> Transform>
+template <details::Parser Parser, details::TransformInvocable<typename Parser::ValueType> Transform>
 class TransformParser final {
     Parser parser_;
     Transform transform_;
@@ -63,7 +65,7 @@ class TransformParser final {
 public:
     using ParserType = TransformParser;
     using InputType = Parser::InputType;
-    using ValueType = TransformInvocableResult<Transform, typename Parser::ValueType>::type;
+    using ValueType = details::TransformInvocableResult<Transform, typename Parser::ValueType>::type;
 
     explicit constexpr TransformParser(Parser parser, Transform transform) noexcept
         : parser_ {std::move(parser)}
@@ -86,4 +88,4 @@ public:
     }
 };
 
-} // namespace skarn::parser::details
+} // namespace skarn::parser

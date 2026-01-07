@@ -4,10 +4,10 @@
 #include "TypePack.h"
 #include <tuple>
 
-namespace skarn::parser::details {
+namespace skarn::parser {
 
-template <Parser...Parsers>
-requires (sizeof...(Parsers) >= 2 && CompatibleParsers<Parsers...>)
+template <details::Parser...Parsers>
+requires (sizeof...(Parsers) >= 2 && details::CompatibleParsers<Parsers...>)
 class CombinedParser final {
     std::tuple<Parsers...> parsers_;
 
@@ -21,7 +21,7 @@ class CombinedParser final {
 
 public:
     using ParserType = CombinedParser;
-    using InputType = InputTypeOf<Parsers...>;
+    using InputType = details::InputTypeOf<Parsers...>;
     using ValueTypePack = TypePack<typename Parsers::ValueType...>::template remove_t<NoValueType>;
     using ValueType = std::conditional_t<ValueTypePack::size >= 2,
         typename ValueTypePack::template apply_to_t<std::tuple>,
@@ -96,11 +96,11 @@ public:
     }
 };
 
-template <Parser...Parsers>
-requires (sizeof...(Parsers) >= 2 && CompatibleParsers<Parsers...>)
+template <details::Parser...Parsers>
+requires (sizeof...(Parsers) >= 2 && details::CompatibleParsers<Parsers...>)
 constexpr auto makeCombinedParser(Parsers... parsers) noexcept {
     // Helper to turn a single parser into a tuple (for concatenation)
-    const auto toTuple = []<Parser P>(P&& p) static constexpr noexcept {
+    const auto toTuple = []<details::Parser P>(P&& p) static constexpr noexcept {
         if constexpr (SpecializationOf<P, CombinedParser>) {
             return p.parsers(); // It's a CombinedParser, return its internal tuple
         } else {
@@ -108,7 +108,7 @@ constexpr auto makeCombinedParser(Parsers... parsers) noexcept {
         }
     };
 
-    return std::apply([]<Parser...FlattenedParsers>(FlattenedParsers...flattenedParsers) static constexpr noexcept {
+    return std::apply([]<details::Parser...FlattenedParsers>(FlattenedParsers...flattenedParsers) static constexpr noexcept {
         return CombinedParser<std::decay_t<FlattenedParsers>...> {std::move(flattenedParsers)...};
     }, std::tuple_cat(toTuple(std::move(parsers))...));
 }

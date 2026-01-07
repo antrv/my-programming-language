@@ -16,23 +16,23 @@ struct Parse final {
     Parse() = delete;
 
     template <class Elem>
-    static constexpr ParserInterface<details::ValueParser<std::decay_t<Elem>>> value(Elem&& val) noexcept {
-        return details::ValueParser<std::decay_t<Elem>> {std::forward<Elem>(val)};
+    static constexpr ParserInterface<ValueParser<std::decay_t<Elem>>> value(Elem&& val) noexcept {
+        return ValueParser<std::decay_t<Elem>> {std::forward<Elem>(val)};
     }
 
     template <class Elem>
-    static constexpr ParserInterface<details::ElemParser<std::decay_t<Elem>>> elem(Elem&& val) noexcept {
-        return details::ElemParser<std::decay_t<Elem>> {std::forward<Elem>(val)};
+    static constexpr ParserInterface<ElemParser<std::decay_t<Elem>>> elem(Elem&& val) noexcept {
+        return ElemParser<std::decay_t<Elem>> {std::forward<Elem>(val)};
     }
 
-    static constexpr ParserInterface<details::CharParser> char_(const char character) noexcept {
-        return details::CharParser {character};
+    static constexpr ParserInterface<CharParser> char_(const char character) noexcept {
+        return CharParser {character};
     }
 
     template <std::predicate<char> Predicate>
-    static constexpr ParserInterface<details::CharPredicateParser<Predicate>> char_(Predicate predicate,
+    static constexpr ParserInterface<CharPredicateParser<Predicate>> char_(Predicate predicate,
         const std::string_view what = {}) noexcept {
-        return details::CharPredicateParser {std::move(predicate), what};
+        return CharPredicateParser {std::move(predicate), what};
     }
 
     static constexpr auto ws(const std::string_view what = {}) noexcept {
@@ -50,17 +50,17 @@ struct Parse final {
         }, what.empty() ? "whitespace"sv : what);
     }
 
-    static constexpr ParserInterface<details::LiteralParser> literal(const std::string_view str) noexcept {
-        return details::LiteralParser {str};
+    static constexpr ParserInterface<LiteralParser> literal(const std::string_view str) noexcept {
+        return LiteralParser {str};
     }
 
     template <std::integral T = int>
-    static constexpr ParserInterface<details::IntParser<T>> integer() noexcept {
+    static constexpr ParserInterface<IntParser<T>> integer() noexcept {
         return {};
     }
 
     template <class Value>
-    static constexpr ParserInterface<details::ReferenceParser<Value>> ref() noexcept {
+    static constexpr ParserInterface<ReferenceParser<Value>> ref() noexcept {
         return {};
     }
 };

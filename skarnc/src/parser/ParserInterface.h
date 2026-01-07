@@ -40,7 +40,7 @@ public:
     }
 
     ParserResult<ValueType> parse(const std::string_view source) const {
-        details::ParserContext<char> context {source};
+        ParserContext<char> context {source};
 
         if (ValueType value {}; parser_.parse(context, value)) {
             return {std::move(value)};
@@ -51,53 +51,53 @@ public:
 
     template <details::Parser NextParser>
     constexpr auto operator >>(const ParserInterface<NextParser>& next) const noexcept {
-        using ResultParser = decltype(details::makeCombinedParser(parser_, next.parser()));
-        return ParserInterface<ResultParser> {details::makeCombinedParser(parser_, next.parser())};
+        using ResultParser = decltype(makeCombinedParser(parser_, next.parser()));
+        return ParserInterface<ResultParser> {makeCombinedParser(parser_, next.parser())};
     }
 
     constexpr auto operator >>(const char chr) const noexcept {
-        using ResultParser = decltype(details::makeCombinedParser(parser_, details::CharParser {chr}));
-        return ParserInterface<ResultParser> {details::makeCombinedParser(parser_, details::CharParser {chr})};
+        using ResultParser = decltype(makeCombinedParser(parser_, CharParser {chr}));
+        return ParserInterface<ResultParser> {makeCombinedParser(parser_, CharParser {chr})};
     }
 
     constexpr auto operator >>(const std::string_view literal) const noexcept {
-        using ResultParser = decltype(details::makeCombinedParser(parser_, details::LiteralParser {literal}));
-        return ParserInterface<ResultParser> {details::makeCombinedParser(parser_, details::LiteralParser {literal})};
+        using ResultParser = decltype(makeCombinedParser(parser_, LiteralParser {literal}));
+        return ParserInterface<ResultParser> {makeCombinedParser(parser_, LiteralParser {literal})};
     }
 
     template <details::TransformInvocable<typename Parser::ValueType> Invocable>
     constexpr auto operator >>(Invocable invocable) const noexcept {
-        return ParserInterface<details::TransformParser<Parser, Invocable>> {
-            details::TransformParser<Parser, Invocable> {parser_, std::move(invocable)}};
+        return ParserInterface<TransformParser<Parser, Invocable>> {
+            TransformParser<Parser, Invocable> {parser_, std::move(invocable)}};
     }
 
     template <details::Parser NextParser>
     constexpr auto operator ||(const ParserInterface<NextParser>& next) const noexcept {
-        using ResultParser = decltype(details::makeVariantParser(parser_, next.parser()));
-        return ParserInterface<ResultParser> {details::makeVariantParser(parser_, next.parser())};
+        using ResultParser = decltype(makeVariantParser(parser_, next.parser()));
+        return ParserInterface<ResultParser> {makeVariantParser(parser_, next.parser())};
     }
 
-    constexpr ParserInterface<details::SequenceParser<Parser>> operator *() const noexcept {
-        return ParserInterface<details::SequenceParser<Parser>> {details::SequenceParser<Parser> {parser_}};
+    constexpr ParserInterface<SequenceParser<Parser>> operator *() const noexcept {
+        return ParserInterface<SequenceParser<Parser>> {SequenceParser<Parser> {parser_}};
     }
 
-    constexpr ParserInterface<details::SequenceParser<Parser, 1>> operator +() const noexcept {
-        return ParserInterface<details::SequenceParser<Parser, 1>> {details::SequenceParser<Parser, 1> {parser_}};
+    constexpr ParserInterface<SequenceParser<Parser, 1>> operator +() const noexcept {
+        return ParserInterface<SequenceParser<Parser, 1>> {SequenceParser<Parser, 1> {parser_}};
     }
 
-    constexpr ParserInterface<details::IgnoreParser<Parser>> operator ~() const noexcept {
-        using ResultParser = decltype(details::makeIgnoreParser(parser_));
-        return ParserInterface<ResultParser> {details::makeIgnoreParser(parser_)};
+    constexpr ParserInterface<IgnoreParser<Parser>> operator ~() const noexcept {
+        using ResultParser = decltype(makeIgnoreParser(parser_));
+        return ParserInterface<ResultParser> {makeIgnoreParser(parser_)};
     }
 
     constexpr auto expected(const std::string_view what) const noexcept {
-        using ResultParser = decltype(details::makeExpectedParser(parser_, what));
-        return ParserInterface<ResultParser> {details::makeExpectedParser(parser_, what)};
+        using ResultParser = decltype(makeExpectedParser(parser_, what));
+        return ParserInterface<ResultParser> {makeExpectedParser(parser_, what)};
     }
 
     constexpr auto optional() const noexcept {
-        using ResultParser = decltype(details::makeOptionalParser(parser_));
-        return ParserInterface<ResultParser> {details::makeOptionalParser(parser_)};
+        using ResultParser = decltype(makeOptionalParser(parser_));
+        return ParserInterface<ResultParser> {makeOptionalParser(parser_)};
     }
 
     template <details::Parser WrapParser>
@@ -116,12 +116,12 @@ public:
     }
 
     constexpr auto seq(const char chr) const noexcept {
-        return seq(ParserInterface {details::CharParser {chr}});
+        return seq(ParserInterface {CharParser {chr}});
     }
 
     template <details::Parser ParserRef>
     requires (
-        SpecializationOf<Parser, details::ReferenceParser> &&
+        SpecializationOf<Parser, ReferenceParser> &&
         std::is_same_v<ValueType, typename ParserRef::ValueType> &&
         std::is_same_v<InputType, typename ParserRef::InputType>)
     void assign(const ParserInterface<ParserRef>& parser) const {
@@ -131,14 +131,14 @@ public:
 
 template <details::Parser Parser>
 constexpr auto operator >>(const char chr, const ParserInterface<Parser>& parser) noexcept {
-    using ResultParser = decltype(details::makeCombinedParser(details::CharParser {chr}, parser.parser()));
-    return ParserInterface<ResultParser> {details::makeCombinedParser(details::CharParser {chr}, parser.parser())};
+    using ResultParser = decltype(makeCombinedParser(CharParser {chr}, parser.parser()));
+    return ParserInterface<ResultParser> {makeCombinedParser(CharParser {chr}, parser.parser())};
 }
 
 template <details::Parser Parser>
 constexpr auto operator >>(const std::string_view literal, const ParserInterface<Parser>& parser) noexcept {
-    using ResultParser = decltype(details::makeCombinedParser(details::LiteralParser {literal}, parser.parser()));
-    return ParserInterface<ResultParser> {details::makeCombinedParser(details::LiteralParser {literal}, parser.parser())};
+    using ResultParser = decltype(makeCombinedParser(LiteralParser {literal}, parser.parser()));
+    return ParserInterface<ResultParser> {makeCombinedParser(LiteralParser {literal}, parser.parser())};
 }
 
 } // namespace skarn::parser

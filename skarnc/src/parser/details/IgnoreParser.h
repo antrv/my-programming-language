@@ -2,10 +2,10 @@
 
 #include "ParserContext.h"
 
-namespace skarn::parser::details {
+namespace skarn::parser {
 
 /// Parser that does not generate a value.
-template <Parser Parser>
+template <details::Parser Parser>
 class IgnoreParser final {
     Parser parser_;
 
@@ -28,7 +28,7 @@ public:
     }
 };
 
-template <Parser Parser>
+template <details::Parser Parser>
 constexpr auto makeIgnoreParser(Parser parser) noexcept {
     if constexpr (SpecializationOf<Parser, IgnoreParser>) {
         return parser;
@@ -38,4 +38,4 @@ constexpr auto makeIgnoreParser(Parser parser) noexcept {
     }
 }
 
-} // namespace skarn::parser::details
+} // namespace skarn::parser

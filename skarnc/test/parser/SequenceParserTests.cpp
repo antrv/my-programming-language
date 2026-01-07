@@ -4,7 +4,6 @@
 
 using namespace std::string_view_literals;
 using namespace skarn::parser;
-using namespace skarn::parser::details;
 
 TEST(SequenceParserTests, Success) {
     constexpr SequenceParser parser {LiteralParser {"a"sv}};

@@ -6,7 +6,7 @@
 #include <format>
 #include <span>
 
-namespace skarn::parser::details {
+namespace skarn::parser {
 
 struct ParserPosition {
     size_t offset;
@@ -87,11 +87,12 @@ struct NoValueType final {
     NoValueType() = delete;
 };
 
+namespace details {
 template <class T>
 concept Parser = std::is_same_v<typename T::InputType, AnyInputType> ||
     // TODO: check parse method signature in the case of InputType is AnyInputType
     requires(const T& p, ParserContext<typename T::InputType>& c, typename T::ValueType& v) {
-        { p.parse(c) } -> std::same_as<bool>;
+    { p.parse(c) } -> std::same_as<bool>;
     } && (std::is_same_v<typename T::ValueType, NoValueType> ||
     requires(const T& p, ParserContext<typename T::InputType>& c, typename T::ValueType& v) {
         { p.parse(c, v) } -> std::same_as<bool>;
@@ -106,5 +107,5 @@ using InputTypeOf = TypePack<typename Parsers::InputType...>::
     template remove_t<AnyInputType>::
     template insert_last_t<AnyInputType>::
     template element_t<0>;
-
-} // namespace skarn::parser::details
+} // namespace details
+} // namespace skarn::parser
