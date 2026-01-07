@@ -10,6 +10,7 @@
 #include "details/ReferenceParser.h"
 #include "details/SequenceParser.h"
 #include "details/TransformParser.h"
+#include "details/ValueParser.h"
 #include "details/VariantParser.h"
 
 namespace skarn::parser {
@@ -117,6 +118,11 @@ public:
 
     constexpr auto seq(const char chr) const noexcept {
         return seq(ParserInterface {CharParser {chr}});
+    }
+
+    template <class Value>
+    constexpr auto value(Value val) const noexcept {
+        return ParserInterface<ValueParser<Parser, Value>> {ValueParser<Parser, Value> {parser_, val}};
     }
 
     template <details::Parser ParserRef>

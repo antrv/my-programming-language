@@ -10,14 +10,32 @@ namespace skarn::ast {
 
 struct Expression;
 
+enum class UnaryOp {
+    Plus,
+    Minus,
+};
+
 struct UnaryExpression {
     std::unique_ptr<Expression> arg;
-    char op;
+    UnaryOp op;
+};
+
+enum class BinaryOp {
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+    Equal,
+    NotEqual,
+    LessThan,
+    LessThanOrEqual,
+    GreaterThan,
+    GreaterThanOrEqual,
 };
 
 struct BinaryExpression {
-    std::vector<std::unique_ptr<Expression>> args;
-    char op;
+    std::vector<Expression> args;
+    BinaryOp op;
 };
 
 struct VariableExpression {
@@ -29,7 +47,7 @@ struct ConstantExpression {
 };
 
 struct FunctionCallExpression {
-    std::vector<std::unique_ptr<Expression>> args;
+    std::vector<Expression> args;
     std::string name;
 };
 
@@ -52,23 +70,27 @@ struct Expression {
     }
 
     template <OneOf<Expression, ConstantExpression, VariableExpression, UnaryExpression, BinaryExpression, FunctionCallExpression> Arg>
-    static UnaryExpression unary(const char op, Arg&& arg) {
+    static UnaryExpression unary(const UnaryOp op, Arg&& arg) {
         std::unique_ptr<Expression> arg_ptr = std::make_unique<Expression>(std::forward<Arg>(arg));
         return UnaryExpression {std::move(arg_ptr), op};
     }
 
     template <OneOf<Expression, ConstantExpression, VariableExpression, UnaryExpression, BinaryExpression, FunctionCallExpression>...Args>
-    static BinaryExpression binary(const char op, Args&&...args) {
-        std::vector<std::unique_ptr<Expression>> args_vector;
-        (args_vector.push_back(std::make_unique<Expression>(std::forward<Args>(args))), ...);
+    static BinaryExpression binary(const BinaryOp op, Args&&...args) {
+        std::vector<Expression> args_vector;
+        ((args_vector.push_back(Expression {std::forward<Args>(args)})), ...);
         return BinaryExpression {std::move(args_vector), op};
     }
 
     template <OneOf<Expression, ConstantExpression, VariableExpression, UnaryExpression, BinaryExpression, FunctionCallExpression>...Args>
     static FunctionCallExpression function(std::string name, Args&&...args) {
-        std::vector<std::unique_ptr<Expression>> args_vector;
-        (args_vector.push_back(std::make_unique<Expression>(std::forward<Args>(args))), ...);
+        std::vector<Expression> args_vector;
+        ((args_vector.push_back(Expression {std::forward<Args>(args)})), ...);
         return FunctionCallExpression {std::move(args_vector), std::move(name)};
+    }
+
+    static FunctionCallExpression function(std::string name, std::vector<Expression> args) {
+        return FunctionCallExpression {std::move(args), std::move(name)};
     }
 };
 
@@ -92,7 +114,7 @@ inline bool operator ==(const BinaryExpression& lhs, const BinaryExpression& rhs
     }
 
     for (size_t i = 0; i < lhs.args.size(); ++i) {
-        if (!(lhs.args[i].get() == rhs.args[i].get() || lhs.args[i] == nullptr || *lhs.args[i] == *rhs.args[i])) {
+        if (lhs.args[i] != rhs.args[i]) {
             return false;
         }
     }
@@ -106,7 +128,7 @@ inline bool operator ==(const FunctionCallExpression& lhs, const FunctionCallExp
     }
 
     for (size_t i = 0; i < lhs.args.size(); ++i) {
-        if (!(lhs.args[i].get() == rhs.args[i].get() || lhs.args[i] == nullptr || *lhs.args[i] == *rhs.args[i])) {
+        if (lhs.args[i] != rhs.args[i]) {
             return false;
         }
     }
@@ -135,15 +157,55 @@ inline std::string to_string(const VariableExpression& expr) {
     return expr.name;
 }
 
+constexpr std::string_view to_string(const UnaryOp op) noexcept {
+    using namespace std::string_view_literals;
+    switch (op) {
+        case UnaryOp::Plus:
+            return "+"sv;
+        case UnaryOp::Minus:
+            return "-"sv;
+        default:
+            return "?"sv;
+    }
+}
+
 inline std::string to_string(const UnaryExpression& expr) {
-    return std::format("{}{}", expr.op, expr.arg ? to_string(*expr.arg) : "null");
+    return std::format("{}{}", to_string(expr.op), expr.arg ? to_string(*expr.arg) : "null");
+}
+
+constexpr std::string_view to_string(const BinaryOp op) noexcept {
+    using namespace std::string_view_literals;
+    switch (op) {
+        case BinaryOp::Add:
+            return "+"sv;
+        case BinaryOp::Subtract:
+            return "-"sv;
+        case BinaryOp::Multiply:
+            return "*"sv;
+        case BinaryOp::Divide:
+            return "/"sv;
+        case BinaryOp::Equal:
+            return "=="sv;
+        case BinaryOp::NotEqual:
+            return "!="sv;
+        case BinaryOp::LessThan:
+            return "<"sv;
+        case BinaryOp::LessThanOrEqual:
+            return "<="sv;
+        case BinaryOp::GreaterThan:
+            return ">"sv;
+        case BinaryOp::GreaterThanOrEqual:
+            return ">="sv;
+        default:
+            return "?"sv;
+    }
 }
 
 inline std::string to_string(const BinaryExpression& expr) {
     std::string result {"("};
-    result += to_string(*expr.args[0]);
+    result += to_string(expr.args[0]);
     for (size_t i = 1; i < expr.args.size(); ++i) {
-        result += std::format(" {} {}", expr.op, to_string(*expr.args[i]));
+        result += std::format(" {} {}", to_string(expr.op), to_string(expr.args[i]));
     }
 
     result += ')';
@@ -153,9 +215,9 @@ inline std::string to_string(const BinaryExpression& expr) {
 inline std::string to_string(const FunctionCallExpression& expr) {
     std::string result = expr.name;
     result += '(';
-    result += to_string(*expr.args[0]);
+    result += to_string(expr.args[0]);
     for (size_t i = 1; i < expr.args.size(); ++i) {
-        result += std::format(", {}", to_string(*expr.args[i]));
+        result += std::format(", {}", to_string(expr.args[i]));
     }
 
     result += ')';

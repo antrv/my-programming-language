@@ -1,12 +1,12 @@
 #include <gtest/gtest.h>
-#include "parser/details/ValueParser.h"
+#include "parser/details/ConstantParser.h"
 
 using namespace std::string_view_literals;
 using namespace skarn::parser;
 
-TEST(ValueParserTests, ValueParser)
+TEST(ConstantParserTests, ValueParser)
 {
-    constexpr ValueParser parser {12};
+    constexpr ConstantParser parser {12};
 
     constexpr std::string_view input {"input"sv};
     ParserContext<char> ctx {input};

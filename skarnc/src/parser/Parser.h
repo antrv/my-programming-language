@@ -7,7 +7,7 @@
 #include "details/IntParser.h"
 #include "details/LiteralParser.h"
 #include "details/ReferenceParser.h"
-#include "details/ValueParser.h"
+#include "details/ConstantParser.h"
 #include "ParserInterface.h"
 
 namespace skarn::parser {
@@ -16,8 +16,8 @@ struct Parse final {
     Parse() = delete;
 
     template <class Elem>
-    static constexpr ParserInterface<ValueParser<std::decay_t<Elem>>> value(Elem&& val) noexcept {
-        return ValueParser<std::decay_t<Elem>> {std::forward<Elem>(val)};
+    static constexpr ParserInterface<ConstantParser<std::decay_t<Elem>>> value(Elem&& val) noexcept {
+        return ConstantParser<std::decay_t<Elem>> {std::forward<Elem>(val)};
     }
 
     template <class Elem>

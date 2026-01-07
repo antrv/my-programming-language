@@ -4,29 +4,33 @@
 
 namespace skarn::parser {
 
-template <class Value>
+template <details::Parser Parser, class Value>
 class ValueParser final {
+    Parser parser_;
     Value value_;
 
 public:
     using ParserType = ValueParser;
-    using InputType = AnyInputType;
+    using InputType = Parser::InputType;
     using ValueType = Value;
 
-    explicit constexpr ValueParser(Value value) noexcept
-        : value_ {std::move(value)} {
+    explicit constexpr ValueParser(Parser parser, Value value) noexcept
+        : parser_ {std::move(parser)}
+        , value_ {std::move(value)} {
     }
 
-    template <class Elem>
-    bool parse([[maybe_unused]] ParserContext<Elem>& ctx, Value& value) const {
-        value = value_;
-        return true;
+    bool parse(ParserContext<InputType>& ctx, Value& value) const
+    requires (!std::is_same_v<Value, NoValueType>) {
+        if (parser_.parse(ctx)) {
+            value = value_;
+            return true;
+        }
+
+        return false;
     }
 
-    template <class Elem>
-    bool parse([[maybe_unused]] ParserContext<Elem>& ctx) const {
-        std::ignore = this;
-        return true;
+    bool parse(ParserContext<InputType>& ctx) const {
+        return parser_.parse(ctx);
     }
 };
 
