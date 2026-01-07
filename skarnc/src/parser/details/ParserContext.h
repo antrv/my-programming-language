@@ -91,9 +91,11 @@ template <class T>
 concept Parser = std::is_same_v<typename T::InputType, AnyInputType> ||
     // TODO: check parse method signature in the case of InputType is AnyInputType
     requires(const T& p, ParserContext<typename T::InputType>& c, typename T::ValueType& v) {
-        { p.parse(c, v) } -> std::same_as<bool>;
         { p.parse(c) } -> std::same_as<bool>;
-    };
+    } && (std::is_same_v<typename T::ValueType, NoValueType> ||
+    requires(const T& p, ParserContext<typename T::InputType>& c, typename T::ValueType& v) {
+        { p.parse(c, v) } -> std::same_as<bool>;
+    });
 
 template <class...Parsers>
 concept CompatibleParsers = (Parser<Parsers> && ...) &&

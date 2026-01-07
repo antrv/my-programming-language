@@ -17,17 +17,24 @@ class VariantParser final {
 public:
     using ParserType = VariantParser;
     using InputType = InputTypeOf<Parsers...>;
-    using ValueType =
-        type_pack_unique_t<TypePack<typename Parsers::ValueType...>>::
-        template replace_t<NoValueType, std::monostate>::
-        template apply_to_t<std::variant>;
+    using ValueTypePack = type_pack_unique_t<TypePack<typename Parsers::ValueType...>>;
+    using ValueType = std::conditional_t<
+        ValueTypePack::size == 1,
+        typename ValueTypePack::template element_t<0>,
+        typename ValueTypePack::template replace_t<NoValueType, std::monostate>::template apply_to_t<std::variant>>;
 
 private:
     bool parseLastVariant(ParserContext<InputType>& ctx, ValueType& value) const {
         constexpr size_t lastIndex = sizeof...(Parsers) - 1;
         const auto& parser = std::get<lastIndex>(parsers_);
         using Value = ParserValueType<lastIndex>;
-        if constexpr (std::is_same_v<Value, NoValueType>) {
+        if constexpr (std::is_same_v<ValueType, NoValueType>) {
+            return parser.parse(ctx);
+        }
+        else if constexpr (!SpecializationOf<ValueType, std::variant>) {
+            return parser.parse(ctx, value);
+        }
+        else if constexpr (std::is_same_v<Value, NoValueType>) {
             value.template emplace<std::monostate>();
             return parser.parse(ctx);
         }
@@ -46,10 +53,21 @@ private:
     template <size_t Index>
     bool parseVariant(ParserContext<InputType>& ctx, ValueType& value) const {
         const ParserPosition position = ctx.position();
-
         using Value = ParserValueType<Index>;
         const auto& parser = std::get<Index>(parsers_);
-        if constexpr (std::is_same_v<Value, NoValueType>) {
+        if constexpr (std::is_same_v<ValueType, NoValueType>) {
+            if (!parser.parse(ctx)) {
+                ctx.position(position);
+                return false;
+            }
+        }
+        else if constexpr (!SpecializationOf<ValueType, std::variant>) {
+            if (!parser.parse(ctx, value)) {
+                ctx.position(position);
+                return false;
+            }
+        }
+        else if constexpr (std::is_same_v<Value, NoValueType>) {
             value.template emplace<std::monostate>();
             if (!parser.parse(ctx)) {
                 ctx.position(position);
@@ -111,7 +129,8 @@ public:
         return parsers_;
     }
 
-    bool parse(ParserContext<InputType>& ctx, ValueType& value) const {
+    bool parse(ParserContext<InputType>& ctx, ValueType& value) const
+    requires (!std::is_same_v<ValueType, NoValueType>) {
         return parseImpl(ctx, value, std::make_index_sequence<sizeof...(Parsers) - 1>());
     }
 

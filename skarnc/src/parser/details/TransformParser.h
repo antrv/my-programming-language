@@ -1,16 +1,59 @@
 #pragma once
 
 #include "ParserContext.h"
-#include "InvocableTraits.h"
 
 namespace skarn::parser::details {
 
 template <class T, class Value>
-concept TransformInvocable = std::is_same_v<invocable_result_t<T>, void> &&
-    invocable_args_t<T>::size == 2 &&
-    std::is_lvalue_reference_v<typename invocable_args_t<T>::template element_t<0>> &&
-    !std::is_const_v<std::remove_reference_t<typename invocable_args_t<T>::template element_t<0>>> &&
-    std::is_same_v<std::remove_cvref_t<typename invocable_args_t<T>::template element_t<1>>, Value>;
+struct TransformInvocableResult;
+
+template <class Type, class Result, class Arg, class Value>
+struct TransformInvocableResult<void(Type::*)(Result&, Arg), Value> : std::type_identity<Result> {
+};
+
+template <class Type, class Result, class Arg, class Value>
+struct TransformInvocableResult<void(Type::*)(Result&, Arg) noexcept, Value> : std::type_identity<Result> {
+};
+
+template <class Type, class Result, class Arg, class Value>
+struct TransformInvocableResult<void(Type::*)(Result&, Arg) const, Value> : std::type_identity<Result> {
+};
+
+template <class Type, class Result, class Arg, class Value>
+struct TransformInvocableResult<void(Type::*)(Result&, Arg) const noexcept, Value> : std::type_identity<Result> {
+};
+
+template <class Result, class Arg, class Value>
+struct TransformInvocableResult<void(*)(Result&, Arg), Value> : std::type_identity<Result> {
+};
+
+template <class Result, class Arg, class Value>
+struct TransformInvocableResult<void(*)(Result&, Arg) noexcept, Value> : std::type_identity<Result> {
+};
+
+template <class Result, class Arg, class Value>
+struct TransformInvocableResult<void(Result&, Arg), Value> : std::type_identity<Result> {
+};
+
+template <class Result, class Arg, class Value>
+struct TransformInvocableResult<void(Result&, Arg) noexcept, Value> : std::type_identity<Result> {
+};
+
+template <class F, class Value>
+requires (requires { &F::operator(); })
+struct TransformInvocableResult<F, Value> : TransformInvocableResult<decltype(&F::operator()), Value> {
+};
+
+template <class F, class Value>
+requires (requires { &F::template operator()<Value>; })
+struct TransformInvocableResult<F, Value> : TransformInvocableResult<decltype(&F::template operator()<Value>), Value> {
+};
+
+template <class T, class Value>
+concept TransformInvocable =
+    requires (const T& t, typename TransformInvocableResult<T, Value>::type& result, Value& value) {
+        { t(result, value) } -> std::same_as<void>;
+    };
 
 template <Parser Parser, TransformInvocable<typename Parser::ValueType> Transform>
 class TransformParser final {
@@ -20,14 +63,15 @@ class TransformParser final {
 public:
     using ParserType = TransformParser;
     using InputType = Parser::InputType;
-    using ValueType = std::remove_reference_t<typename invocable_args_t<Transform>::template element_t<0>>;
+    using ValueType = TransformInvocableResult<Transform, typename Parser::ValueType>::type;
 
     explicit constexpr TransformParser(Parser parser, Transform transform) noexcept
         : parser_ {std::move(parser)}
         , transform_ {std::move(transform)} {
     }
 
-    bool parse(ParserContext<InputType>& ctx, ValueType& value) const {
+    bool parse(ParserContext<InputType>& ctx, ValueType& value) const
+    requires (!std::is_same_v<ValueType, NoValueType>) {
         if (typename Parser::ValueType val {};
             parser_.parse(ctx, val)) {
             transform_(value, val);

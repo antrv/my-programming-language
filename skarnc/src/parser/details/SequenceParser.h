@@ -45,12 +45,6 @@ public:
         return true;
     }
 
-    // no value
-    bool parse(ParserContext<InputType>& ctx, [[maybe_unused]] NoValueType& value) const
-    requires (std::is_same_v<typename Parser::ValueType, NoValueType>) {
-        return parse(ctx);
-    }
-
     // string
     bool parse(ParserContext<InputType>& ctx, std::string& value) const
     requires (std::is_same_v<typename Parser::ValueType, char>) {

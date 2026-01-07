@@ -83,7 +83,8 @@ public:
         return true;
     }
 
-    bool parse(ParserContext<InputType>& ctx, [[maybe_unused]] ValueType& value) const {
+    bool parse(ParserContext<InputType>& ctx, [[maybe_unused]] ValueType& value) const
+    requires (!std::is_same_v<ValueType, NoValueType>) {
         return parse(ctx);
     }
 };

@@ -27,13 +27,13 @@ consteval auto create_parser() noexcept {
         *Parse::char_([](const char c) static noexcept {
             return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_';
         }, "identifier"sv) >>
-        [](std::string& result, const std::tuple<char, std::string>& value) static {
-            result = std::get<0>(value) + std::get<1>(value);
+        [](std::string& result, std::tuple<char, std::string>& value) static {
+            result = std::get<0>(value) + std::move(std::get<1>(value));
         };
 
     constexpr auto expressionRef = Parse::ref<Expression>();
 
-    constexpr auto constantExpression = Parse::integer<int>() >> [](Expression& expression, const int& value) static {
+    constexpr auto constantExpression = Parse::integer<int>() >> [](Expression& expression, const int value) static {
         expression.value = ConstantExpression {value};
     };
 

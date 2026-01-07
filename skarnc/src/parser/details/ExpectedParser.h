@@ -28,7 +28,8 @@ public:
         return what_;
     }
 
-    bool parse(ParserContext<InputType>& ctx, ValueType& value) const {
+    bool parse(ParserContext<InputType>& ctx, ValueType& value) const
+    requires (!std::is_same_v<ValueType, NoValueType>) {
         if (!parser_.parse(ctx, value)) {
             if (ctx.report_messages()) {
                 ctx.messages().back().expected = what_;

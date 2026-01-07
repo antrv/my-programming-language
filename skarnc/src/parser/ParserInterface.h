@@ -124,8 +124,8 @@ public:
         SpecializationOf<Parser, details::ReferenceParser> &&
         std::is_same_v<ValueType, typename ParserRef::ValueType> &&
         std::is_same_v<InputType, typename ParserRef::InputType>)
-    void assign(ParserRef parser) const {
-        parser_.assign(std::move(parser));
+    void assign(const ParserInterface<ParserRef>& parser) const {
+        parser_.assign(parser.parser());
     }
 };
 

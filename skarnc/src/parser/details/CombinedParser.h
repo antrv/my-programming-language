@@ -89,12 +89,6 @@ public:
         }(std::make_index_sequence<sizeof...(Parsers)>());
     }
 
-    // for NoValueType
-    bool parse(ParserContext<InputType>& ctx, [[maybe_unused]] ValueType& value) const
-    requires (ValueTypePack::size == 0) {
-        return parse(ctx);
-    }
-
     // for a single value
     bool parse(ParserContext<InputType>& ctx, ValueType& value) const
     requires (ValueTypePack::size == 1) {

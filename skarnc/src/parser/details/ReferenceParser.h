@@ -98,7 +98,8 @@ public:
         storage_ = ParserStorage {parser};
     }
 
-    bool parse(ParserContext<InputType>& ctx, ValueType& value) const {
+    bool parse(ParserContext<InputType>& ctx, ValueType& value) const
+    requires (!std::is_same_v<ValueType, NoValueType>) {
         if (!storage_.initialized()) {
             throw std::logic_error {"Parser is not assigned"};
         }
