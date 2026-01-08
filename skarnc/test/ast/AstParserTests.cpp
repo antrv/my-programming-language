@@ -123,25 +123,25 @@ constexpr auto statementRef = Parse::ref<Statement>();
 
 constexpr auto variableDeclaration =
     ~Parse::literal("let"sv) >> ws_at_least_once >> ident >> ws_many >>
-    ~Parse::char_('=') >> ws_many >> expression >> ws_many >> ~Parse::char_(';') >>
+    ~Parse::char_('=') >> ws_many >> expressionRef >> ws_many >> ~Parse::char_(';') >>
     [](Statement& result, std::tuple<std::string, Expression>& value) static {
         result = Statement::variableDeclaration(std::move(std::get<0>(value)), std::move(std::get<1>(value)));
     };
 
 constexpr auto variableAssignment =
-    ident >> ws_many >> ~Parse::char_('=') >> ws_many >> expression >> ws_many >> ~Parse::char_(';') >>
+    ident >> ws_many >> ~Parse::char_('=') >> ws_many >> expressionRef >> ws_many >> ~Parse::char_(';') >>
     [](Statement& result, std::tuple<std::string, Expression>& value) static {
         result = Statement::variableAssignment(std::move(std::get<0>(value)), std::move(std::get<1>(value)));
     };
 
 constexpr auto returnStatement =
-    ~Parse::literal("return"sv) >> ws_many >> expression >> ws_many >> ~Parse::char_(';') >>
+    ~Parse::literal("return"sv) >> ws_many >> expressionRef >> ws_many >> ~Parse::char_(';') >>
     [](Statement& result, Expression& value) static {
         result = Statement::returnStatement(std::move(value));
     };
 
 constexpr auto whileStatement =
-    ~Parse::literal("while"sv) >> ws_at_least_once >> expression >> ws_many >>
+    ~Parse::literal("while"sv) >> ws_at_least_once >> expressionRef >> ws_many >>
     ~Parse::char_('{') >> ws_many >> *(statementRef >> ws_many) >>
     ~Parse::char_('}') >>
     [](Statement& result, std::tuple<Expression, std::vector<Statement>>& value) static {
@@ -153,7 +153,7 @@ constexpr auto statement = returnStatement || variableDeclaration || variableAss
 constexpr auto function =
     ~Parse::literal("fn"sv) >> ws_at_least_once >> ident >> ws_many >>
     ~Parse::char_('(') >> ws_many >> ident.seq(ws_many >> ',' >> ws_many) >> ws_many >> ~Parse::char_(')') >> ws_many >>
-    ~Parse::char_('{') >> ws_many >> *(statement >> ws_many) >> expression.optional() >> ws_many >> ~Parse::char_('}') >>
+    ~Parse::char_('{') >> ws_many >> *(statementRef >> ws_many) >> expressionRef.optional() >> ws_many >> ~Parse::char_('}') >>
     [](Function& result, std::tuple<std::string, std::vector<std::string>, std::vector<Statement>, std::optional<Expression>>& value) static {
         result.name = std::get<0>(value);
         for (std::string& arg : std::get<1>(value)) {
@@ -164,6 +164,11 @@ constexpr auto function =
 
         result.statements = std::move(std::get<2>(value));
         result.lastExpression = std::move(std::get<3>(value));
+    };
+
+constexpr auto unit = ws_many >> *(function >> ws_many) >>
+    [](Unit& result, std::vector<Function>& value) static {
+        result.functions = std::move(value);
     };
 
 } // namespace
@@ -258,14 +263,14 @@ TEST(AstParserTests, WhileStatement) {
     expressionRef.assign(expression);
     statementRef.assign(statement);
 
-    constexpr std::string_view text {
-        "while i < 10 {"
-        "    a = a / 2;"
-        "    i = i + 1;"
-        "}"
-    };
+    constexpr std::string_view text = R"aa(
+        while i < 10 {
+            a = a / 2;
+            i = i + 1;
+        }
+    )aa";
 
-    const auto result = whileStatement.parse(text);
+    const auto result = whileStatement.wrap(ws_many).parse(text);
     ASSERT_TRUE(result);
 
     const Statement& stmt = result.value();
@@ -304,13 +309,13 @@ TEST(AstParserTests, Function1) {
     expressionRef.assign(expression);
     statementRef.assign(statement);
 
-    constexpr std::string_view text {
-        "fn add(a, b) {"
-        "    return a + b;"
-        "}"
-    };
+    constexpr std::string_view text = R"aa(
+        fn add(a, b) {
+            return a + b;
+        }
+    )aa";
 
-    const auto result = function.parse(text);
+    const auto result = function.wrap(ws_many).parse(text);
     ASSERT_TRUE(result);
 }
 
@@ -318,16 +323,16 @@ TEST(AstParserTests, Function2) {
     expressionRef.assign(expression);
     statementRef.assign(statement);
 
-    constexpr std::string_view text {
-        "fn add_numbers(a, b) {"
-        "    while a < 10 {"
-        "        a = a + 1;"
-        "    }"
-        "    a + b"
-        "}"
-    };
+    constexpr std::string_view text = R"aa(
+        fn add_numbers(a, b) {
+            while a < 10 {
+                a = a + 1;
+            }
+            a + b
+        }
+    )aa";
 
-    const auto result = function.parse(text);
+    const auto result = function.wrap(ws_many).parse(text);
     ASSERT_TRUE(result);
 
     const auto& func = result.value();
@@ -335,4 +340,29 @@ TEST(AstParserTests, Function2) {
     EXPECT_EQ(func.arguments.size(), 2);
     EXPECT_EQ(func.statements.size(), 1);
     EXPECT_TRUE(func.lastExpression.has_value());
+}
+
+TEST(AstParserTests, Unit) {
+    expressionRef.assign(expression);
+    statementRef.assign(statement);
+
+    constexpr std::string_view text = R"aa(
+        fn add_numbers(a, b) {
+            a + b
+        }
+
+        fn add_numbers2(a, b) {
+            while a < 10 {
+                a = a + 1;
+            }
+            a + b
+        }
+
+        fn main() {
+            print(add_numbers(add_numbers2(1, 2), 5));
+        }
+    )aa";
+
+    const auto result = unit.parse(text);
+    ASSERT_TRUE(result);
 }
