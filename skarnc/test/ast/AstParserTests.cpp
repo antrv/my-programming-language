@@ -134,12 +134,36 @@ constexpr auto variableAssignment =
         result = Statement::variableAssignment(std::move(std::get<0>(value)), std::move(std::get<1>(value)));
     };
 
+constexpr auto returnStatement =
+    ~Parse::literal("return"sv) >> ws_many >> expression >> ws_many >> ~Parse::char_(';') >>
+    [](Statement& result, Expression& value) static {
+        result = Statement::returnStatement(std::move(value));
+    };
+
 constexpr auto whileStatement =
     ~Parse::literal("while"sv) >> ws_at_least_once >> expression >> ws_many >>
     ~Parse::char_('{') >> ws_many >> *(statementRef >> ws_many) >>
     ~Parse::char_('}') >>
     [](Statement& result, std::tuple<Expression, std::vector<Statement>>& value) static {
         result = Statement::whileStatement(std::move(std::get<0>(value)), std::move(std::get<1>(value)));
+    };
+
+constexpr auto statement = returnStatement || variableDeclaration || variableAssignment || whileStatement;
+
+constexpr auto function =
+    ~Parse::literal("fn"sv) >> ws_at_least_once >> ident >> ws_many >>
+    ~Parse::char_('(') >> ws_many >> ident.seq(ws_many >> ',' >> ws_many) >> ws_many >> ~Parse::char_(')') >> ws_many >>
+    ~Parse::char_('{') >> ws_many >> *(statement >> ws_many) >> expression.optional() >> ws_many >> ~Parse::char_('}') >>
+    [](Function& result, std::tuple<std::string, std::vector<std::string>, std::vector<Statement>, std::optional<Expression>>& value) static {
+        result.name = std::get<0>(value);
+        for (std::string& arg : std::get<1>(value)) {
+            result.arguments.push_back(FunctionArgument {
+                .name = std::move(arg),
+            });
+        }
+
+        result.statements = std::move(std::get<2>(value));
+        result.lastExpression = std::move(std::get<3>(value));
     };
 
 } // namespace
@@ -177,9 +201,138 @@ TEST(AstParserTests, ParseSimpleExpression) {
     EXPECT_EQ(value, expected);
 }
 
-TEST(AstParserTests, StatementExpression) {
+TEST(AstParserTests, VariableDeclaration) {
     expressionRef.assign(expression);
-    //statementRef.assign(statement);
 
+    const auto result = variableDeclaration.parse("let a = 1 + 2;");
+    ASSERT_TRUE(result);
 
+    const Statement& stmt = result.value();
+    const auto& varDecl = std::get<VariableDeclarationStatement>(stmt.value);
+    const Expression& initializer = varDecl.initializer;
+    EXPECT_EQ(varDecl.name, "a"sv);
+    const Expression expected =
+        Expression::binary(BinaryOp::Add,
+            Expression::constant(1),
+            Expression::constant(2));
+
+    EXPECT_EQ(initializer, expected);
+}
+
+TEST(AstParserTests, VariableAssignment) {
+    expressionRef.assign(expression);
+
+    const auto result = variableAssignment.parse("a = a + 2;");
+    ASSERT_TRUE(result);
+
+    const Statement& stmt = result.value();
+    const auto& varAssign = std::get<VariableAssignmentStatement>(stmt.value);
+    const Expression& expr = varAssign.expression;
+    EXPECT_EQ(varAssign.name, "a"sv);
+    const Expression expected =
+        Expression::binary(BinaryOp::Add,
+            Expression::variable("a"),
+            Expression::constant(2));
+
+    EXPECT_EQ(expr, expected);
+}
+
+TEST(AstParserTests, ReturnStatement) {
+    expressionRef.assign(expression);
+
+    const auto result = returnStatement.parse("return (x / 2);");
+    ASSERT_TRUE(result);
+
+    const Statement& stmt = result.value();
+    const auto& returnSt = std::get<ReturnStatement>(stmt.value);
+    const Expression& expr = returnSt.expression;
+    const Expression expected =
+        Expression::binary(BinaryOp::Divide,
+            Expression::variable("x"),
+            Expression::constant(2));
+
+    EXPECT_EQ(expr, expected);
+}
+
+TEST(AstParserTests, WhileStatement) {
+    expressionRef.assign(expression);
+    statementRef.assign(statement);
+
+    constexpr std::string_view text {
+        "while i < 10 {"
+        "    a = a / 2;"
+        "    i = i + 1;"
+        "}"
+    };
+
+    const auto result = whileStatement.parse(text);
+    ASSERT_TRUE(result);
+
+    const Statement& stmt = result.value();
+    const auto& whileSt = std::get<WhileStatement>(stmt.value);
+    const Expression& expr = whileSt.condition;
+    const Expression expected =
+        Expression::binary(BinaryOp::LessThan,
+            Expression::variable("i"),
+            Expression::constant(10));
+
+    EXPECT_EQ(expr, expected);
+
+    const auto& body = whileSt.statements;
+    ASSERT_EQ(body.size(), 2U);
+    const auto& first = std::get<VariableAssignmentStatement>(body[0].value);
+    const auto& second = std::get<VariableAssignmentStatement>(body[1].value);
+
+    EXPECT_EQ(first.name, "a"sv);
+    const Expression firstExpr =
+        Expression::binary(BinaryOp::Divide,
+            Expression::variable("a"),
+            Expression::constant(2));
+
+    EXPECT_EQ(first.expression, firstExpr);
+
+    EXPECT_EQ(second.name, "i"sv);
+    const Expression secondExpr =
+        Expression::binary(BinaryOp::Add,
+            Expression::variable("i"),
+            Expression::constant(1));
+
+    EXPECT_EQ(second.expression, secondExpr);
+}
+
+TEST(AstParserTests, Function1) {
+    expressionRef.assign(expression);
+    statementRef.assign(statement);
+
+    constexpr std::string_view text {
+        "fn add(a, b) {"
+        "    return a + b;"
+        "}"
+    };
+
+    const auto result = function.parse(text);
+    ASSERT_TRUE(result);
+}
+
+TEST(AstParserTests, Function2) {
+    expressionRef.assign(expression);
+    statementRef.assign(statement);
+
+    constexpr std::string_view text {
+        "fn add_numbers(a, b) {"
+        "    while a < 10 {"
+        "        a = a + 1;"
+        "    }"
+        "    a + b"
+        "}"
+    };
+
+    const auto result = function.parse(text);
+    ASSERT_TRUE(result);
+
+    const auto& func = result.value();
+    EXPECT_EQ(func.name, "add_numbers"sv);
+    EXPECT_EQ(func.arguments.size(), 2);
+    EXPECT_EQ(func.statements.size(), 1);
+    EXPECT_TRUE(func.lastExpression.has_value());
 }

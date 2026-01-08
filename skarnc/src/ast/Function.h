@@ -12,7 +12,8 @@ struct FunctionArgument {
 struct Function {
     std::string name;
     std::vector<FunctionArgument> arguments;
-    std::vector<std::unique_ptr<Statement>> statements;
+    std::vector<Statement> statements;
+    std::optional<Expression> lastExpression;
 };
 
 } // namespace skarn::ast
